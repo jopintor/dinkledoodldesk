@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     jira_base_url: str = ""
     jira_email: str = ""
     jira_api_token: SecretStr = SecretStr("")
-    jira_project_key: str = "DD"
+    jira_project_key: str = "ITH"
 
     @property
     def cors_origin_list(self) -> list[str]:
