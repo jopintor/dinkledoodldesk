@@ -1,0 +1,56 @@
+# --- Restricted course material -------------------------------------------
+# The course PDFs are marked Restricted: never commit them.
+# PDFs are ignored everywhere; if the team ever needs to commit one of its
+# own PDFs (e.g. an exported diagram), add it explicitly with `git add -f`.
+*.pdf
+
+# --- Secrets ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# --- Python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# --- Node / Next.js --------------------------------------------------------
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+
+# --- Local data (Docker volumes bound to the host, Chroma, DB dumps) --------
+/data/
+/infra/data/
+chroma/
+chroma_data/
+.chroma/
+pgdata/
+n8n_data/
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+
+# --- Editors / OS ----------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Claude Code local settings --------------------------------------------
+.claude/settings.local.json
