@@ -376,11 +376,20 @@ Resource estimate on the host: Postgres ~300 MB, Chroma ~300 MB, n8n ~400 MB, ba
 
 ```python
 class LLMProvider(Protocol):
-    async def generate(self, messages: list[ChatMessage], tools: list[ToolSpec] | None = None,
-                       *, temperature: float = 0.2, max_output_tokens: int = 800) -> LLMResult: ...
-    def stream(self, messages: list[ChatMessage], tools: list[ToolSpec] | None = None,
-               **kwargs) -> AsyncIterator[LLMChunk]: ...
-    async def embed(self, texts: list[str], *, task: Literal["query", "document"]) -> list[list[float]]: ...
+    async def generate(
+        self,
+        messages: list[ChatMessage],
+        tools: list[ToolSpec] | None = None,
+        *,
+        temperature: float = 0.2,
+        max_output_tokens: int = 800,
+    ) -> LLMResult: ...
+    def stream(
+        self, messages: list[ChatMessage], tools: list[ToolSpec] | None = None, **kwargs
+    ) -> AsyncIterator[LLMChunk]: ...
+    async def embed(
+        self, texts: list[str], *, task: Literal["query", "document"]
+    ) -> list[list[float]]: ...
 ```
 
 Implementations: `GeminiProvider` (LangChain `ChatGoogleGenerativeAI` + `GoogleGenerativeAIEmbeddings`), `FakeProvider` (deterministic, for tests/CI and Arjan-free demos), and optionally `OpenAIProvider`. Selected by `LLM_PROVIDER`. The rate limiter, cache and breaker wrap the provider, so they work for any implementation. Swapping the **embedding** model requires a re-index (new Chroma collection); swapping only the chat model does not.
