@@ -35,5 +35,9 @@ target-version = "py311"
 select = ["E", "F", "I", "B", "UP", "S"]
 ignore = ["S101"]  # assert is fine in tests
 
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI declares dependencies as argument defaults, so these calls are intended.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "app.deps.require"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
