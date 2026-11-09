@@ -29,7 +29,8 @@ provider module · n8n · Jira Cloud · Docker Compose · GitHub Actions.
 ```
 backend/         FastAPI app (app/), tests (tests/), Dockerfile
 frontend/        Next.js app; runs with `npm run dev`, no Docker needed
-infra/           docker-compose.yml for the full stack
+infra/           docker-compose.yml, demo-host scripts, Docker setup guide
+mock-directory/  mocked StaffID directory (one-time codes, resets) used in demos
 knowledge-base/  Markdown SOPs/FAQs/policies that DinkDesk answers from
 eval/            Golden Q&A set, evaluation scripts, load tests
 automation/      n8n workflow exports
@@ -46,7 +47,8 @@ cp .env.example .env
 
 ### Full stack in Docker (Jose, Andre)
 
-Needs Docker Desktop. From the repo root:
+Needs Docker Desktop (first-time install on Windows: [`infra/docker-desktop-setup.md`](infra/docker-desktop-setup.md)).
+From the repo root:
 
 ```bash
 docker compose -f infra/docker-compose.yml --env-file .env up -d --build
@@ -58,6 +60,8 @@ docker compose -f infra/docker-compose.yml --env-file .env up -d --build
 | ChromaDB | http://localhost:8001 |
 | n8n | http://localhost:5678 |
 | PostgreSQL | localhost:5432 |
+| Mock StaffID directory ([`mock-directory/`](mock-directory/README.md)) | http://localhost:8090 |
+| Mailpit inbox (all demo emails and "SMS" codes) | http://localhost:8025 (SMTP on 1025) |
 
 Add `--profile frontend` to also run the frontend in Docker at http://localhost:3000.
 
@@ -88,14 +92,31 @@ npm run dev                       # http://localhost:3000
 Set `NEXT_PUBLIC_API_BASE_URL` in `frontend/.env.local` to `/mock-api` (no backend), `http://localhost:8000`, or the
 tunnel URL Jose shares when his PC is running the stack. See [`frontend/README.md`](frontend/README.md).
 
-### Sharing the backend from Jose's PC
+### Demo host: Jose's PC
 
-```bash
-cloudflared tunnel --url http://localhost:8000
+One script starts everything, ingests the knowledge base and opens Cloudflare quick tunnels for the backend and the
+frontend (needs `cloudflared`: `winget install --id Cloudflare.cloudflared`). In PowerShell, from the repo root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File infra\scripts\demo-up.ps1
 ```
 
-Send the printed `https://….trycloudflare.com` URL to Arjan. The frontend calls the API from the browser, so the
-backend's `CORS_ORIGINS` must include `http://localhost:3000` (the default).
+It prints the URLs to send (also saved in `infra/.demo/urls.txt`, which git ignores):
+
+- **Arjan**: the frontend URL, and the backend URL to put in `NEXT_PUBLIC_API_BASE_URL` for his own `npm run dev`.
+- **Andre**: the backend URL and its `/docs` Swagger UI.
+
+Tunnel URLs change on every run. The script builds the frontend against the backend's tunnel URL and adds the
+frontend's tunnel origin to the backend's `CORS_ORIGINS` (`http://localhost:3000` is always allowed). Only the
+backend and frontend are exposed; n8n, Postgres, Chroma, Mailpit and the mock directory stay local.
+
+| Command | Does |
+|---|---|
+| `infra\scripts\demo-up.ps1 -NoTunnel` | local only, no tunnels |
+| `infra\scripts\demo-up.ps1 -NoFrontend` | backend tunnel only (Arjan runs `npm run dev`) |
+| `infra\scripts\demo-up.ps1 -SkipIngest` / `-FullIngest` | skip the KB ingestion / re-embed every document |
+| `infra\scripts\verify-stack.ps1` | checks every service plus a one-time code landing in Mailpit |
+| `infra\scripts\demo-down.ps1` | closes the tunnels (`-Stack` also stops the containers, data kept) |
 
 ## LLM provider
 

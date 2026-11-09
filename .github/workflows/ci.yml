@@ -30,6 +30,24 @@ jobs:
         env:
           APP_ENV: ci
 
+  mock-directory:
+    name: Mock directory (ruff + pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mock-directory
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: mock-directory/pyproject.toml
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: pytest -q
+
   frontend:
     name: Frontend (eslint + build)
     runs-on: ubuntu-latest
@@ -57,6 +75,22 @@ jobs:
       - run: curl --fail --silent --show-error http://localhost:8000/health
       - run: curl --fail --silent --show-error http://localhost:8001/api/v2/heartbeat
       - run: curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-all-errors -o /dev/null http://localhost:5678/healthz
+      - run: curl --fail --silent --show-error http://localhost:8090/health
+      - run: curl --fail --silent --show-error http://localhost:8025/readyz
+      - name: One-time code from mock-directory lands in Mailpit
+        run: |
+          curl --fail --silent --show-error -X POST http://localhost:8090/accounts/demo.staff/otp \
+            -H 'X-API-Key: dev-directory-key' -H 'Content-Type: application/json' \
+            -d '{"employee_no": "PH-10021"}'
+          echo
+          sms='.messages[] | select(.To[].Address == "639170000021@sms.picklehub.example")'
+          for i in $(seq 1 10); do
+            if curl --fail --silent http://localhost:8025/api/v1/messages | jq -e "$sms" > /dev/null; then
+              echo "SMS found in Mailpit"; exit 0
+            fi
+            sleep 1
+          done
+          echo "No SMS in Mailpit"; exit 1
       - if: failure()
         run: docker compose -f infra/docker-compose.yml logs
       - if: always()
