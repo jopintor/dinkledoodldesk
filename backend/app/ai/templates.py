@@ -53,11 +53,6 @@ REFUSE_PERSONAL_DATA = (
     "The front desk can help you contact them or find another option."
 )
 
-COOLDOWN = (
-    "I've stopped answering for a few minutes because of several blocked requests. "
-    "Please try again in {minutes} minutes, or contact the IT Service Desk."
-)
-
 NOT_INDEXED = (
     "My knowledge base isn't available right now, so I can't look this up. I can create a "
     "ticket for the IT Service Desk or connect you to an IT agent."

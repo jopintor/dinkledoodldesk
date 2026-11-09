@@ -20,23 +20,16 @@ is installed and returns the text unchanged until then.
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.ai import templates
 from app.deps import get_db, require
 from app.guardrails.events import GuardrailLog, get_guardrail_log
 from app.guardrails.injection import load_pii_redactor
 from app.models import Club, Role, User
 from app.rag.kb import ROLES
-from app.rag.service import (
-    Caller,
-    GuardrailCooldown,
-    HistoryTurn,
-    RagService,
-    get_rag_service,
-)
+from app.rag.service import Caller, HistoryTurn, RagService, get_rag_service
 
 router = APIRouter(prefix="/api/v1", tags=["rag"])
 
@@ -104,18 +97,7 @@ def ask(
 ) -> dict:
     content, pii_types = redact_input(body.content)
     history = [HistoryTurn(h.role, redact_input(h.content)[0]) for h in body.history]
-    try:
-        answer = service.answer(content, caller, history, pii_types=pii_types)
-    except GuardrailCooldown as exc:
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={
-                "code": "RATE_LIMITED",
-                "message": templates.COOLDOWN.format(minutes=max(1, exc.retry_after_s // 60)),
-                "details": {"retry_after_s": exc.retry_after_s},
-            },
-            headers={"Retry-After": str(exc.retry_after_s)},
-        ) from None
+    answer = service.answer(content, caller, history, pii_types=pii_types)
     return {
         "user_message": {
             "content": content,

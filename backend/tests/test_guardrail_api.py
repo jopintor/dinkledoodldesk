@@ -1,4 +1,4 @@
-"""`/rag/ask` guardrail fields, the 429 cooldown and `GET /guardrail-events`, over HTTP."""
+"""`/rag/ask` guardrail fields and `GET /guardrail-events`, over HTTP."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -80,16 +80,6 @@ def test_pii_is_redacted_in_the_response_and_logged(client_as, log):
     assert body["user_message"]["pii_detected"] is True
     assert body["user_message"]["pii_redacted"] == ["PH_MOBILE"]
     assert log.recent()[0].type == "pii_redacted"
-
-
-def test_cooldown_answers_429_with_retry_after(client_as):
-    client = client_as(PANELIST)
-    for _ in range(3):
-        assert client.post(ASK, json={"content": ATTACK}).status_code == 200
-    resp = client.post(ASK, json={"content": "How do I connect to the VPN?"})
-    assert resp.status_code == 429
-    assert int(resp.headers["Retry-After"]) > 0
-    assert resp.json()["detail"]["code"] == "RATE_LIMITED"
 
 
 @pytest.mark.parametrize(("who", "status"), [(PANELIST, 403), (ADMIN, 200)])

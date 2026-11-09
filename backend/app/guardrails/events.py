@@ -67,10 +67,6 @@ class GuardrailLog(Protocol):
         """Newest first."""
         ...
 
-    def for_user(self, user_id: int, since: datetime) -> list[GuardrailEventRecord]:
-        """One user's events since `since`, oldest first (repeat / cooldown checks)."""
-        ...
-
 
 class InMemoryGuardrailLog:
     def __init__(self, max_events: int = 1000) -> None:
@@ -92,10 +88,6 @@ class InMemoryGuardrailLog:
         if since is not None:
             events = [e for e in events if e.created_at > since]
         return list(reversed(events))[:limit]
-
-    def for_user(self, user_id: int, since: datetime) -> list[GuardrailEventRecord]:
-        with self._lock:
-            return [e for e in self._events if e.user_id == user_id and e.created_at >= since]
 
 
 class SqlGuardrailLog:
@@ -128,10 +120,6 @@ class SqlGuardrailLog:
             query = query.where(GuardrailEvent.created_at > since)
         with self._session_factory() as session:
             return [self._from_row(r) for r in session.scalars(query)]
-
-    def for_user(self, user_id: int, since: datetime) -> list[GuardrailEventRecord]:
-        events = self.recent(since=since, limit=500)
-        return [e for e in reversed(events) if e.user_id == user_id]
 
     @classmethod
     def _to_row(cls, event: GuardrailEventRecord) -> dict:

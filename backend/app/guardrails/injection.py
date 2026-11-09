@@ -28,10 +28,6 @@ from typing import Literal
 
 BLOCK_THRESHOLD = 0.8
 FLAG_THRESHOLD = 0.4
-REPEAT_WINDOW_S = 10 * 60
-REPEAT_FLAGS = 3  # INJ-REPEAT: the 3rd flagged/blocked turn in the window gets extra weight
-COOLDOWN_BLOCKS = 3  # this many blocks in the window -> chat cooldown (429)
-COOLDOWN_S = 10 * 60
 
 Action = Literal["allow", "flag", "block"]
 EventType = Literal[
@@ -204,8 +200,6 @@ _INVISIBLE = re.compile("[\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\u
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 INVISIBLE_RULE = "INJ-INVISIBLE"
 INVISIBLE_WEIGHT = 0.2
-REPEAT_RULE = "INJ-REPEAT"
-REPEAT_WEIGHT = 0.3
 # Rules that alone don't make a message an injection attempt (they only add weight).
 _SOFT_ONLY = {
     "INJ-SECRET",
@@ -214,7 +208,6 @@ _SOFT_ONLY = {
     "INJ-HIDDEN",
     "INJ-OTP",
     INVISIBLE_RULE,
-    REPEAT_RULE,
 }
 
 
@@ -250,8 +243,8 @@ def normalize(text: str) -> tuple[str, bool]:
     return text, had_invisible
 
 
-def scan_input(text: str, *, recent_flags: int = 0) -> InputVerdict:
-    """Score one user message. `recent_flags` = this user's flagged/blocked turns in 10 min."""
+def scan_input(text: str) -> InputVerdict:
+    """Score one user message."""
     clean, had_invisible = normalize(text)
     fired = [r for r in RULES if r.pattern.search(clean)]
     rule_ids = [r.id for r in fired]
@@ -259,9 +252,6 @@ def scan_input(text: str, *, recent_flags: int = 0) -> InputVerdict:
     if had_invisible:
         rule_ids.append(INVISIBLE_RULE)
         score += INVISIBLE_WEIGHT
-    if rule_ids and recent_flags >= REPEAT_FLAGS - 1:
-        rule_ids.append(REPEAT_RULE)
-        score += REPEAT_WEIGHT
     score = round(min(score, 1.0), 2)
 
     hard = next((r.hard for r in fired if r.hard), None)
@@ -322,10 +312,8 @@ _PROMPT_FINGERPRINTS = (
     "you may call only these tools",
     "internal reference:",
 )
-_MD_IMAGE = re.compile(r"!\[[^\]]*\]\(\s*https?://[^)]*\)")
-_URL_WITH_QUERY = re.compile(r"https?://(?![\w.-]*picklehub\.example)[^\s)]+\?[^\s)]+")
 
-OutputType = Literal["system_prompt_leak", "exfiltration", "pii_redacted"]
+OutputType = Literal["system_prompt_leak", "pii_redacted"]
 
 
 @dataclass(frozen=True)
@@ -338,7 +326,7 @@ class OutputVerdict:
 
 
 def check_output(text: str, canary: str, redactor: Redactor | None = None) -> OutputVerdict:
-    """Check a generated answer: block a prompt leak, strip exfil links, mask PII.
+    """Check a generated answer: block a system-prompt leak, mask PII.
 
     `redactor` is the PII redactor (`app.guardrails.pii.redact`), passed in so this module
     works before that guardrail is merged.
@@ -349,20 +337,8 @@ def check_output(text: str, canary: str, redactor: Redactor | None = None) -> Ou
     if sum(f in lowered for f in _PROMPT_FINGERPRINTS) >= 2:
         return OutputVerdict("block", "", ("OUT-PROMPT-ECHO",), "system_prompt_leak")
 
-    rule_ids: list[str] = []
-    event_type: OutputType | None = None
-    if _MD_IMAGE.search(text) or _URL_WITH_QUERY.search(text):
-        text = _URL_WITH_QUERY.sub("[link removed]", _MD_IMAGE.sub("[image removed]", text))
-        rule_ids.append("OUT-EXFIL-LINK")
-        event_type = "exfiltration"
-
-    pii_types: tuple[str, ...] = ()
     if redactor is not None:
-        text, found = redactor(text)
+        masked, found = redactor(text)
         if found:
-            pii_types = tuple(found)
-            rule_ids.append("OUT-PII")
-            event_type = event_type or "pii_redacted"
-
-    action = "sanitize" if rule_ids else "pass"
-    return OutputVerdict(action, text, tuple(rule_ids), event_type, pii_types)
+            return OutputVerdict("sanitize", masked, ("OUT-PII",), "pii_redacted", tuple(found))
+    return OutputVerdict("pass", text)

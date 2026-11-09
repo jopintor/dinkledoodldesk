@@ -5,8 +5,8 @@ for blocked input (docs/ai-design.md §3.2). The caller passes an already redact
 
 Guardrails (docs/guardrails-and-security.md §2): the injection heuristics run first and
 block (refusal template), flag (tools disabled) or allow; user and KB text are escaped so
-they cannot close our prompt tags; the answer is checked for the canary, a prompt echo,
-exfiltration links and PII. Every block, flag, redaction and escalation is written to the
+they cannot close our prompt tags; the answer is checked for the canary, a prompt echo
+and PII. Every block, flag, redaction and escalation is written to the
 guardrail log that the admin Guardrail Log panel reads.
 """
 
@@ -16,7 +16,7 @@ import secrets
 import time
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from typing import Literal
 
@@ -45,28 +45,14 @@ HISTORY_TURNS = 6
 DEGRADED_SOURCES = 3
 OFFER_HELP = ["create_ticket", "escalate_to_agent"]
 
-# escalate_to_agent `reason` values (ai-design.md §6.4) per always-escalate intent.
+# Escalation reason per always-escalate intent; stored on the escalation/ticket the
+# conversation endpoint creates (prototype scope: no separate escalation tool).
 ESCALATION_REASONS = {
     routing.HUMAN_REQUEST: "user_requested",
     routing.PRIVACY_REQUEST: "sensitive_topic",
     routing.SECURITY_INCIDENT: "sensitive_topic",
     routing.HIGH_PRIORITY: "high_priority",
 }
-# Input events that count towards INJ-REPEAT and the cooldown.
-_ABUSE_TYPES = {
-    "prompt_injection",
-    "personal_data_request",
-    "secret_request",
-    "other_account_request",
-}
-
-
-class GuardrailCooldown(Exception):
-    """Too many blocked messages from this user; the API answers 429."""
-
-    def __init__(self, retry_after_s: int) -> None:
-        super().__init__(f"chat cooldown, retry after {retry_after_s}s")
-        self.retry_after_s = retry_after_s
 
 
 @dataclass(frozen=True)
@@ -106,10 +92,10 @@ class RagAnswer:
     band: str | None = None
     citations: list[Citation] = field(default_factory=list)
     suggested_actions: list[str] = field(default_factory=list)
-    # True when policy requires a hand-off (security, privacy, person requested); the tool
-    # executor (issue #7) turns it into an escalate_to_agent call. False = only offered.
+    # True when policy requires a hand-off (security, privacy, person requested): the
+    # conversation endpoint records an escalation/ticket. False = a ticket is only offered.
     escalate: bool = False
-    # escalate_to_agent reason when action == "escalate" (low_confidence, sensitive_topic, ...)
+    # Why, when action == "escalate" (low_confidence, sensitive_topic, user_requested, ...)
     escalation_reason: str | None = None
     # Capability limiting: False on a flagged turn, so the tool executor offers no tools.
     tools_allowed: bool = True
@@ -186,18 +172,13 @@ class RagService:
         cacheable: bool = True,
         pii_types: Sequence[str] = (),
     ) -> RagAnswer:
-        """`message` must already be PII-redacted; `pii_types` = entity types that were masked.
-
-        Raises GuardrailCooldown when the user has had too many blocked messages.
-        """
+        """`message` must already be PII-redacted; `pii_types` = entity types that were masked."""
         started = time.monotonic()
         if pii_types:
             self._record(caller, "input", "pii_redacted", "allowed_redacted", "regex",
                          rule_ids=tuple(pii_types))  # fmt: skip
-        recent = self._recent_abuse(caller)
-        self._check_cooldown(caller, recent)
 
-        verdict = injection.scan_input(message, recent_flags=len(recent))
+        verdict = injection.scan_input(message)
         guardrail = None
         if verdict.action != "allow":
             event_action = "blocked" if verdict.blocked else "flagged"
@@ -284,10 +265,8 @@ class RagService:
                 retrieval, forced, base, model=generation.model, reason="output_blocked"
             )
         if checked.action == "sanitize":
-            pii_only = checked.type == "pii_redacted"
-            self._record(caller, "output", checked.type or "exfiltration",
-                         "allowed_redacted" if pii_only else "flagged", "regex",
-                         rule_ids=checked.rule_ids + checked.pii_types)  # fmt: skip
+            self._record(caller, "output", "pii_redacted", "allowed_redacted", "regex",
+                         rule_ids=checked.pii_types)  # fmt: skip
             text = checked.text
             key = None  # never cache an answer the model had to be corrected on
         if text.startswith(prompts.NO_ANSWER):
@@ -385,32 +364,6 @@ class RagService:
         action = "escalated" if result.escalate else "flagged"
         self._record(caller, "retrieval", reason, action, detector,
                      result.retrieval_confidence, rule_ids)  # fmt: skip
-
-    def _recent_abuse(self, caller: Caller) -> list[GuardrailEventRecord]:
-        """This user's flagged/blocked input events in the last 10 minutes, oldest first."""
-        if caller.user_id is None:
-            return []
-        since = datetime.now(UTC) - timedelta(seconds=injection.REPEAT_WINDOW_S)
-        try:
-            events = self.guardrail_log.for_user(caller.user_id, since)
-        except Exception:
-            log.exception("could not read guardrail events")
-            return []
-        return [
-            e for e in events
-            if e.stage == "input" and e.type in _ABUSE_TYPES and e.action in ("blocked", "flagged")
-        ]  # fmt: skip
-
-    def _check_cooldown(self, caller: Caller, recent: list[GuardrailEventRecord]) -> None:
-        limit = self.settings.guardrail_cooldown_blocks
-        blocks = [e for e in recent if e.action == "blocked"]
-        if limit <= 0 or len(blocks) < limit:
-            return
-        until = blocks[-1].created_at + timedelta(seconds=injection.COOLDOWN_S)
-        retry_after = max(1, int((until - datetime.now(UTC)).total_seconds()))
-        self._record(caller, "input", "rate_limited", "blocked", "policy",
-                     rule_ids=("INJ-COOLDOWN",))  # fmt: skip
-        raise GuardrailCooldown(retry_after)
 
     @staticmethod
     def _refusal(verdict: injection.InputVerdict) -> RagAnswer:
