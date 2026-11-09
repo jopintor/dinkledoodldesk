@@ -14,6 +14,13 @@ dependencies = [
     "psycopg[binary]>=3.2",
     "argon2-cffi>=23.1",
     "pyjwt>=2.8",
+    "langchain-text-splitters>=0.3",
+    # Keep on the same 1.5.x line as the chromadb/chroma server image in docker-compose.
+    "chromadb>=1.5,<1.6",
+    "rank-bm25>=0.2.2",
+    "pyyaml>=6.0",
+    # zoneinfo has no time-zone database on Windows.
+    "tzdata; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]
@@ -24,6 +31,8 @@ dev = [
     "httpx>=0.27",
     "ruff>=0.6",
 ]
+# Load testing (scripts/load_test.py); only the PC that generates the load needs it.
+load = ["locust>=2.29"]
 
 [build-system]
 requires = ["setuptools>=69"]

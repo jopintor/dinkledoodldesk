@@ -2,6 +2,8 @@
 
 Workstream C of [PROJECT_PLAN.md](../PROJECT_PLAN.md). Diagrams are Mermaid and render on GitHub. Design v1, 2026-10-28.
 
+> **Prototype scope (2026-11-09):** these docs describe the full design. We build only what [PROJECT_PLAN.md §5](../PROJECT_PLAN.md) lists: 2 tools (`create_ticket`, `reset_password`), n8n WF-01 (+ WF-02 if time), chat, one admin dashboard, read-only escalation list. Tools `check_service_status`/`escalate_to_agent`, WF-03…WF-05, SLA reminders, outbox/HMAC callbacks, agent takeover, KB admin page and mobile layout are **future work**.
+
 | Document | Contents | Template section / assessment |
 |---|---|---|
 | [architecture.md](architecture.md) | System diagram, chat-turn sequence, component specification, data dependencies, Gemini rate-limit handling, LLM and tool failure handling, deployment view, provider swap | §6 System Architecture · **Week 14** architecture + component spec |

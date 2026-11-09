@@ -3,6 +3,8 @@
 > Where the project stands right now, track by track. [PROJECT_PLAN.md](PROJECT_PLAN.md) says *what* we're building and *when*; this file says *how far along we are*.
 > **Last updated: 2026-11-02 (Mon, start of Sprint 1)** · Update the snapshot, the track you touched and the changelog whenever something lands.
 
+> **Scope change 2026-11-09:** the project is now a *prototype* — see [PROJECT_PLAN.md §5](PROJECT_PLAN.md). Items below that mention 4 tools, WF-03…WF-05, outbox/HMAC, agent takeover, KB admin page, mobile layout or Playwright are cut ("future work").
+
 **Legend:** ✅ Done · 🟡 In progress / partly done · ⬜ Not started · 🔴 Blocked · ⚠️ Needs a decision or action
 
 ---
