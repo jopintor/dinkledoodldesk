@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     jira_api_token: SecretStr = SecretStr("")
     jira_project_key: str = "ITH"
 
+    # Auth
+    jwt_secret: SecretStr = SecretStr("dev-only-secret-change-me")
+    jwt_expires_min: int = 60
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
