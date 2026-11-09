@@ -30,7 +30,7 @@ def test_requires_dev_auth_until_jwt_lands(indexed_kb, monkeypatch):
     monkeypatch.setenv("RAG_DEV_AUTH", "false")
     get_settings.cache_clear()
     try:
-        resp = TestClient(app).post("/rag/ask", json={"content": "hello"})
+        resp = TestClient(app).post("/api/v1/rag/ask", json={"content": "hello"})
     finally:
         get_settings.cache_clear()
     assert resp.status_code == 401
@@ -38,7 +38,7 @@ def test_requires_dev_auth_until_jwt_lands(indexed_kb, monkeypatch):
 
 def test_ask_returns_the_conversation_message_shape(client):
     resp = client.post(
-        "/rag/ask",
+        "/api/v1/rag/ask",
         headers={"X-Dev-Role": "staff"},
         json={"content": "I typed my DinkPOS PIN wrong a few times and now it's locked"},
     )
@@ -56,20 +56,20 @@ def test_ask_returns_the_conversation_message_shape(client):
 
 
 def test_ask_validates_input(client):
+    ask = "/api/v1/rag/ask"
     assert (
-        client.post("/rag/ask", headers={"X-Dev-Role": "staff"}, json={"content": ""}).status_code
-        == 422
+        client.post(ask, headers={"X-Dev-Role": "staff"}, json={"content": ""}).status_code == 422
     )
     assert (
-        client.post("/rag/ask", headers={"X-Dev-Role": "root"}, json={"content": "hi"}).status_code
-        == 422
+        client.post(ask, headers={"X-Dev-Role": "root"}, json={"content": "hi"}).status_code == 422
     )
 
 
 def test_kb_search_is_for_agents_and_admins(client):
     query = {"query": "PickleHub-Staff Wi-Fi keeps asking for my password", "as_role": "member"}
-    assert client.post("/kb/search", headers={"X-Dev-Role": "staff"}, json=query).status_code == 403
-    resp = client.post("/kb/search", headers={"X-Dev-Role": "agent"}, json=query)
+    search = "/api/v1/kb/search"
+    assert client.post(search, headers={"X-Dev-Role": "staff"}, json=query).status_code == 403
+    resp = client.post(search, headers={"X-Dev-Role": "agent"}, json=query)
     assert resp.status_code == 200
     results = resp.json()["results"]
     assert results and all(r["doc_id"] != "KB-011" for r in results)

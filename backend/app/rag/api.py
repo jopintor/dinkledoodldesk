@@ -1,10 +1,10 @@
 """RAG endpoints.
 
-- `POST /rag/ask` — one stateless chat turn. Its response has the same shape as
+- `POST /api/v1/rag/ask` — one stateless chat turn. Its response has the same shape as
   `POST /conversations/{id}/messages` in docs/api.md §4, so the frontend can build the chat
   widget against it now. When conversations exist, that endpoint calls
   `RagService.answer()` the same way and this route can be removed.
-- `POST /kb/search` — retrieval debug for agents and admins (docs/api.md §8).
+- `POST /api/v1/kb/search` — retrieval debug for agents and admins (docs/api.md §8).
 
 Integration seams (kept small on purpose):
 - `get_caller`: until JWT auth (PR #15) is merged, the role comes from the `X-Dev-Role`
@@ -23,7 +23,7 @@ from app.config import get_settings
 from app.rag.kb import ROLES
 from app.rag.service import Caller, HistoryTurn, RagService, get_rag_service
 
-router = APIRouter(tags=["rag"])
+router = APIRouter(prefix="/api/v1", tags=["rag"])
 
 Role = Literal["member", "staff", "agent", "admin"]
 
