@@ -7,6 +7,7 @@ from app import __version__
 from app.config import get_settings
 from app.llm import get_llm_provider
 from app.rag.api import router as rag_router
+from app.routers import auth
 
 settings = get_settings()
 
@@ -24,6 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(rag_router)
 
 
