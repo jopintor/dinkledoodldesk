@@ -73,7 +73,7 @@ def test_ask_returns_the_conversation_message_shape(client_as):
     assert resp.status_code == 200
     body = resp.json()
     msg = body["assistant_message"]
-    assert body["user_message"] == {"content": question, "pii_detected": False}
+    assert body["user_message"] == {"content": question, "pii_detected": False, "pii_redacted": []}
     assert msg["answer_mode"] == "generated" and msg["action"] == "answer"
     assert msg["citations"][0]["n"] == 1 and msg["citations"][0]["doc_id"] == "KB-007"
     assert msg["content"].endswith("[1]")

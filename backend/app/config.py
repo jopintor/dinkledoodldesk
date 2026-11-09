@@ -73,6 +73,10 @@ class Settings(BaseSettings):
     response_cache_path: str = ".cache/response_cache.json"
     response_cache_ttl_s: int = 24 * 3600
 
+    # Guardrails (docs/guardrails-and-security.md). memory = in-process ring buffer (no DB
+    # needed); db = rows in the guardrail_events table.
+    guardrail_log_backend: Literal["memory", "db"] = "memory"
+
     # Automation / ticketing
     n8n_webhook_base_url: str = "http://localhost:5678/webhook"
     jira_base_url: str = ""

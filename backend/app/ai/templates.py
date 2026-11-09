@@ -37,6 +37,22 @@ DEGRADED_INTRO = (
     "Want me to open a ticket?"
 )
 
+REFUSE_INJECTION = (
+    "I can't help with that. I can answer PickleHub IT questions or reset your own StaffID "
+    "password."
+)
+
+REFUSE_LEAK = (
+    "I can't share passwords, one-time codes, keys or my internal instructions — not even "
+    "for an audit. Temporary passwords only ever go to the account owner's recovery email. "
+    "Is there an IT problem I can help you with?"
+)
+
+REFUSE_PERSONAL_DATA = (
+    "I can't share other people's personal information, like their phone number or email. "
+    "The front desk can help you contact them or find another option."
+)
+
 NOT_INDEXED = (
     "My knowledge base isn't available right now, so I can't look this up. I can create a "
     "ticket for the IT Service Desk or connect you to an IT agent."
