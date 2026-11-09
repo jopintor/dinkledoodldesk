@@ -32,16 +32,46 @@ class Settings(BaseSettings):
     chroma_host: str = "localhost"
     chroma_port: int = 8001
     chroma_collection: str = "picklehub-kb"
+    # http = the Chroma server (compose); persistent = embedded on disk (no Docker needed);
+    # ephemeral = in memory (tests and quick experiments).
+    chroma_mode: Literal["http", "persistent", "ephemeral"] = "http"
+    chroma_persist_dir: str = ".chroma"
 
     # LLM
-    llm_provider: Literal["gemini", "openai"] = "gemini"
+    # fake = deterministic offline provider for tests, CI and demos without a key.
+    llm_provider: Literal["gemini", "openai", "fake"] = "gemini"
     llm_temperature: float = 0.2
+    llm_max_output_tokens: int = 800
     gemini_api_key: SecretStr = SecretStr("")
     gemini_chat_model: str = "gemini-2.5-flash"
+    gemini_fallback_model: str = "gemini-2.5-flash-lite"
     gemini_embedding_model: str = "models/gemini-embedding-001"
+    embedding_dim: int = 768
     openai_api_key: SecretStr = SecretStr("")
     openai_chat_model: str = "gpt-4o-mini"
     openai_embedding_model: str = "text-embedding-3-small"
+
+    # LLM gateway limits (docs/architecture.md §5). Set a bit below the published free-tier
+    # quotas for your project; the code never hard-codes them.
+    llm_rpm_limit: int = 8
+    llm_rpd_limit: int = 200
+    llm_max_concurrency: int = 2
+    llm_queue_max_wait_s: float = 20
+    llm_request_timeout_s: float = 25
+    embedding_rpm_limit: int = 60
+
+    # RAG (docs/ai-design.md §2-3)
+    kb_dir: Path = _REPO_ROOT / "knowledge-base"
+    rag_high_threshold: float = 0.70
+    rag_medium_threshold: float = 0.50
+    # Cosine similarities mapped to 0 and 1 in the confidence score; calibrated in Sprint 3.
+    rag_cosine_floor: float = 0.45
+    rag_cosine_ceiling: float = 0.85
+    response_cache_path: str = ".cache/response_cache.json"
+    response_cache_ttl_s: int = 24 * 3600
+    # Until JWT auth (PR #15) is wired in, /rag/ask and /kb/search take the caller's role from
+    # the X-Dev-Role header. Off by default; never enable it on a shared or public host.
+    rag_dev_auth: bool = False
 
     # Automation / ticketing
     n8n_webhook_base_url: str = "http://localhost:5678/webhook"

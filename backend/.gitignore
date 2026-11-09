@@ -1,0 +1,3 @@
+# Local RAG data: embedded Chroma and the response cache
+.chroma/
+.cache/
