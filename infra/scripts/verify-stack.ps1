@@ -61,7 +61,8 @@ Check 'OTP for demo.staff reaches Mailpit' {
         -Headers $h -ContentType 'application/json' -Body $body
     Start-Sleep -Seconds 1
     $msgs = Invoke-RestMethod -Uri 'http://localhost:8025/api/v1/messages?limit=10'
-    $hit = $msgs.messages | Where-Object { $_.To.Address -contains '639170000021@sms.picklehub.example' } | Select-Object -First 1
+    # Not $_.To.Address: on Windows PowerShell 5.1 that calls the array's Address() method instead of enumerating.
+    $hit = $msgs.messages | Where-Object { ($_.To | ForEach-Object { $_.Address }) -contains '639170000021@sms.picklehub.example' } | Select-Object -First 1
     Invoke-RestMethod -Method Post -Uri 'http://localhost:8090/admin/reload' -Headers $h | Out-Null
     if (-not $hit) { throw 'code was requested but no SMS found in Mailpit' }
     "challenge $($otp.challenge_id.Substring(0, 6))... -> '$($hit.Subject)'"
