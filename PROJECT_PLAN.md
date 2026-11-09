@@ -1,7 +1,8 @@
 # DinkDesk — AI-HAS Capstone Master Plan
 
 > Single source of truth for the team and for every Claude session working on this project.
-> Read this file first. Update it when a decision changes. Last updated: 2026-10-28.
+> Read this file first. Update it when a decision changes. Last updated: 2026-11-02.
+> Current status of every track lives in [PROGRESS.md](PROGRESS.md).
 
 ## 1. Course & team
 
@@ -40,7 +41,7 @@ Users/roles (RBAC): `member`, `staff`, `agent` (IT support), `admin`.
 
 | Area | Choice |
 |---|---|
-| Design | Figma (Jose will send templates) |
+| Design | Figma — [DinkDesk – UI Design (Copy)](https://www.figma.com/design/1gFwqS3GDyX581iJMlsX0R) (Arjan's final version) |
 | Task board | GitHub Projects (private repo created by Jose) |
 | Documentation | Google Docs/Drive |
 | Frontend | Next.js (React, TypeScript) |
@@ -119,7 +120,7 @@ Today is Week 13 of the syllabus. Presentation/demo is **Week 16 (Nov 16–20) o
 ## 9. Open items
 
 - Exact presentation slot (Week 16 or 17) — ask Mr. Gregana.
-- Teammates' emails/GitHub usernames for sharing the Google Doc and repo.
+- Teammates' emails for sharing the Google Doc. (GitHub done: Andre = `dremnty122`, Arjan = `sarinasavs` are repo collaborators.)
 - Project documentation Google Doc (workstream D, created 2026-10-28, not shared yet): [DinkDesk – AI-HAS Project Documentation](https://docs.google.com/document/d/1-9LpgU4tLxokY8w43LFUwOjdnqSnSjiqdxhE_A7BA54/edit). Sections 1–5, 11, 12, 14 drafted; 6–10 and 13 have highlighted placeholders waiting on `/docs` and the QA report.
-- Figma templates/file link (Jose to send).
+- Figma design file (workstream E, design finished 2026-11-05): [DinkDesk – UI Design (Copy)](https://www.figma.com/design/1gFwqS3GDyX581iJMlsX0R) is Arjan's final version, use this one for the frontend. It adds screens 02b Typing and 02c New chat. The original [DinkDesk – UI Design](https://www.figma.com/design/R0qIVGw2OPSdFTaDaCHqzs) is out of date. Pages: "Start here – Arjan", "Style guide" (variables + components), "Screens" (login, chat desktop ×2, chat mobile, agent queue, admin KPI dashboard, knowledge base). Design decisions approved by Jose 2026-10-30: cream `#F7F4EC` + dark green `#3F6136`, yellow accents only; Outfit + Plus Jakarta Sans; "StaffID" password wording; Staff & IT / Member login toggle; tagline "Soft shots for hard IT problems."; tickets show `DD-… → ITH-…`; mobile layout for chat only.
 - Jira Cloud free site — Jose creates the account.
