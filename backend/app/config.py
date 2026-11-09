@@ -69,9 +69,6 @@ class Settings(BaseSettings):
     rag_cosine_ceiling: float = 0.85
     response_cache_path: str = ".cache/response_cache.json"
     response_cache_ttl_s: int = 24 * 3600
-    # Until JWT auth (PR #15) is wired in, /rag/ask and /kb/search take the caller's role from
-    # the X-Dev-Role header. Off by default; never enable it on a shared or public host.
-    rag_dev_auth: bool = False
 
     # Automation / ticketing
     n8n_webhook_base_url: str = "http://localhost:5678/webhook"

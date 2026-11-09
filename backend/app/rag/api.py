@@ -6,35 +6,50 @@
   `RagService.answer()` the same way and this route can be removed.
 - `POST /api/v1/kb/search` — retrieval debug for agents and admins (docs/api.md §8).
 
-Integration seams (kept small on purpose):
-- `get_caller`: until JWT auth (PR #15) is merged, the role comes from the `X-Dev-Role`
-  header and only when `RAG_DEV_AUTH=true`. After #15, replace its body with
-  `Depends(get_current_user)` and map the user's role, first name, club and job title.
-- `redact_input`: returns the text unchanged until the PII redaction guardrail (PR #16) is
-  merged; then call `app.guardrails.pii.redact()` here. Nothing else changes.
+Both routes need a JWT from `POST /api/v1/auth/login`: `/rag/ask` the `chat:use`
+permission, `/kb/search` the `kb:search` permission (agents and admins).
+
+`redact_input` returns the text unchanged until the PII redaction guardrail (PR #16) is
+merged; then call `app.guardrails.pii.redact()` there. Nothing else changes.
 """
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
-from app.config import get_settings
+from app.deps import get_db, require
+from app.models import Club, Role, User
 from app.rag.kb import ROLES
 from app.rag.service import Caller, HistoryTurn, RagService, get_rag_service
 
 router = APIRouter(prefix="/api/v1", tags=["rag"])
 
-Role = Literal["member", "staff", "agent", "admin"]
+RoleName = Literal["member", "staff", "agent", "admin"]
 
 
-def get_caller(x_dev_role: str | None = Header(default=None)) -> Caller:
-    if not get_settings().rag_dev_auth:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
-    role = (x_dev_role or "member").strip().lower()
-    if role not in ROLES:
-        raise HTTPException(422, f"unknown role {role!r}")
-    return Caller(role=role)
+def caller_for(user: User, db: Session) -> Caller:
+    """What the prompt and the role filter need to know about the signed-in user."""
+    role = db.get(Role, user.role_id)
+    club = db.get(Club, user.club_id) if user.club_id else None
+    first_name = (user.full_name or "").split(" ")[0] or "there"
+    return Caller(
+        # A role the KB doesn't know gets the least-privileged view.
+        role=role.name if role and role.name in ROLES else "member",
+        first_name=first_name,
+        club_name=club.name if club else "not set",
+    )
+
+
+def get_caller(user: User = Depends(require("chat:use")), db: Session = Depends(get_db)) -> Caller:
+    return caller_for(user, db)
+
+
+def get_search_caller(
+    user: User = Depends(require("kb:search")), db: Session = Depends(get_db)
+) -> Caller:
+    return caller_for(user, db)
 
 
 def redact_input(text: str) -> tuple[str, bool]:
@@ -56,7 +71,7 @@ class AskRequest(BaseModel):
 
 class SearchRequest(BaseModel):
     query: str = Field(min_length=1, max_length=2000)
-    as_role: Role | None = None
+    as_role: RoleName | None = None
     k: int = Field(default=5, ge=1, le=5)
 
 
@@ -93,11 +108,9 @@ def ask(
 @router.post("/kb/search")
 def kb_search(
     body: SearchRequest,
-    caller: Caller = Depends(get_caller),
+    caller: Caller = Depends(get_search_caller),
     service: RagService = Depends(get_rag_service),
 ) -> dict:
-    if caller.role not in ("agent", "admin"):
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not allowed")
     result = service.retriever.search(body.query, body.as_role or caller.role)
     return {
         "confidence": result.retrieval_confidence,
