@@ -1,0 +1,2 @@
+# Load-test raw files are large; keep summary.md and commit only runs worth keeping.
+load-*/locust*

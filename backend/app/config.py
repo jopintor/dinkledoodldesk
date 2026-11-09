@@ -88,6 +88,22 @@ class Settings(BaseSettings):
     jwt_secret: SecretStr = SecretStr("dev-only-secret-change-me")
     jwt_expires_min: int = 60
 
+    # n8n <-> backend: header token on webhooks to n8n, HMAC secret on n8n callbacks.
+    n8n_webhook_token: SecretStr = SecretStr("change-me-n8n-webhook-token")
+    n8n_callback_secret: SecretStr = SecretStr("change-me-n8n-callback-secret")
+
+    # Mock StaffID directory (mock-directory/, port 8090)
+    directory_base_url: str = "http://localhost:8090"
+    directory_api_key: SecretStr = SecretStr("dev-directory-key")
+
+    # Email: Mailpit locally (SMTP 1025, inbox on http://localhost:8025)
+    smtp_host: str = "localhost"
+    smtp_port: int = 1025
+    smtp_from: str = "DinkDesk <dinkdesk@picklehub.example>"
+
+    # Automation: SLA reminders after 1 min instead of 10 (demo rehearsals)
+    sla_test_mode: bool = False
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

@@ -3,7 +3,10 @@
 # Frontend too (optional; Arjan normally runs it with `npm run dev` instead):
 #   docker compose -f infra/docker-compose.yml --env-file .env --profile frontend up -d --build
 #
-# Host ports: backend 8000, chromadb 8001, postgres 5432, n8n 5678, frontend 3000.
+# Demo host (Jose's PC): infra/scripts/demo-up.ps1 does all of this plus KB ingestion and tunnels.
+#
+# Host ports: backend 8000, chromadb 8001, postgres 5432, n8n 5678, frontend 3000,
+# mock-directory 8090, mailpit 8025 (web inbox) and 1025 (SMTP).
 
 name: dinkdesk
 
@@ -66,8 +69,16 @@ services:
       CHROMA_HOST: chromadb
       CHROMA_PORT: "8000"
       N8N_WEBHOOK_BASE_URL: http://n8n:5678/webhook
+      DIRECTORY_BASE_URL: http://mock-directory:8090
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      # demo-up.ps1 sets CORS_ORIGINS in the shell to add the tunnel origins; otherwise .env wins.
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
     ports:
       - "8000:8000"
+    volumes:
+      # KB ingestion (`python -m app.rag.ingest`) reads the Markdown from here (Settings.kb_dir).
+      - ../knowledge-base:/knowledge-base:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -79,12 +90,53 @@ services:
     build:
       context: ../frontend
       args:
-        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+        # demo-up.ps1 sets this to the backend's tunnel URL so remote browsers can reach the API.
+        NEXT_PUBLIC_API_BASE_URL: ${FRONTEND_API_BASE_URL:-http://localhost:8000}
     restart: unless-stopped
     ports:
       - "3000:3000"
     depends_on:
       - backend
+
+  # Mocked StaffID directory used by the reset_password tool (docs/README.md decision #3).
+  mock-directory:
+    build:
+      context: ../mock-directory
+    restart: unless-stopped
+    environment:
+      DIRECTORY_API_KEY: ${DIRECTORY_API_KEY:-dev-directory-key}
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+    ports:
+      - "8090:8090"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8090/health').status == 200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 5
+    depends_on:
+      mailpit:
+        condition: service_healthy
+
+  # Local SMTP sink + web inbox: every demo email and "SMS" code lands here.
+  mailpit:
+    image: axllent/mailpit:v1.33.1
+    restart: unless-stopped
+    environment:
+      MP_MAX_MESSAGES: "5000"
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+      TZ: Asia/Manila
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 5
 
 volumes:
   pgdata:
