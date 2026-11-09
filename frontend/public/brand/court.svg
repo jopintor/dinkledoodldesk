@@ -1,0 +1,16 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="520" height="200" viewBox="0 0 520 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Court illustration">
+<rect id="Rectangle" x="1.5" y="1.5" width="517" height="197" rx="6.5" stroke-width="3" stroke="#6E8F5E"/>
+<rect id="Rectangle_2" x="190" width="3" height="200" fill="#6E8F5E"/>
+<rect id="Rectangle_3" x="330" width="3" height="200" fill="#6E8F5E"/>
+<rect id="Rectangle_4" opacity="0.5" x="258" width="4" height="200" fill="#23301F"/>
+<rect id="Rectangle_5" y="99" width="190" height="3" fill="#6E8F5E"/>
+<rect id="Rectangle_6" x="330" y="99" width="190" height="3" fill="#6E8F5E"/>
+<circle id="Ball" cx="394" cy="62" r="22" fill="#E9C54A"/>
+<circle id="Ellipse" opacity="0.35" cx="386.5" cy="54.5" r="2.5" fill="#8A5A00"/>
+<circle id="Ellipse_2" opacity="0.35" cx="400.5" cy="52.5" r="2.5" fill="#8A5A00"/>
+<circle id="Ellipse_3" opacity="0.35" cx="392.5" cy="66.5" r="2.5" fill="#8A5A00"/>
+<circle id="Ellipse_4" opacity="0.35" cx="404.5" cy="68.5" r="2.5" fill="#8A5A00"/>
+<circle id="Ellipse_5" opacity="0.35" cx="384.5" cy="70.5" r="2.5" fill="#8A5A00"/>
+</g>
+</svg>
