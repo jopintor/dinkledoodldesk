@@ -111,6 +111,13 @@ if ($LASTEXITCODE -ne 0) {
     Fail 'Some containers did not become healthy. Check: docker compose -f infra\docker-compose.yml logs <service>'
 }
 
+# --- 2b. Database tables + demo accounts (both safe to re-run) -----------------
+Step 'Creating database tables and demo accounts'
+& docker @composeArgs exec -T backend alembic upgrade head
+if ($LASTEXITCODE -ne 0) { Fail 'Database migration failed. Check: docker compose -f infra\docker-compose.yml logs backend postgres' }
+& docker @composeArgs exec -T backend python -m app.seed
+if ($LASTEXITCODE -ne 0) { Fail 'Seeding demo accounts failed. Check the output above.' }
+
 # --- 3. KB ingestion -----------------------------------------------------------
 if (-not $SkipIngest) {
     Step 'Ingesting the knowledge base into Chroma'
