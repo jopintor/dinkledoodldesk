@@ -43,8 +43,11 @@ class Settings(BaseSettings):
     llm_temperature: float = 0.2
     llm_max_output_tokens: int = 800
     gemini_api_key: SecretStr = SecretStr("")
-    gemini_chat_model: str = "gemini-2.5-flash"
-    gemini_fallback_model: str = "gemini-2.5-flash-lite"
+    gemini_chat_model: str = "gemini-3.5-flash"
+    gemini_fallback_model: str = "gemini-3.1-flash-lite"
+    # Gemini 3 thinking level. "minimal" keeps grounded answers fast and stops thinking tokens
+    # eating the max_output_tokens budget; empty uses the model default.
+    gemini_reasoning_effort: str = "minimal"
     gemini_embedding_model: str = "models/gemini-embedding-001"
     embedding_dim: int = 768
     openai_api_key: SecretStr = SecretStr("")

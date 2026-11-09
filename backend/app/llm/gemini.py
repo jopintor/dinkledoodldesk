@@ -26,11 +26,13 @@ class GeminiProvider(LLMProvider):
         from langchain_google_genai import ChatGoogleGenerativeAI
 
         model = self.chat_model_name(fallback=fallback)
+        # Thinking tokens count against max_output_tokens and the free-tier quota; grounded
+        # answers from 5 chunks don't need them.
         extra = {}
-        if "2.5-flash" in model:
-            # Thinking tokens count against max_output_tokens and the free-tier quota;
-            # grounded answers from 5 chunks don't need them.
+        if model.startswith("gemini-2.5"):
             extra["thinking_budget"] = 0
+        elif model.startswith("gemini-3") and self._settings.gemini_reasoning_effort:
+            extra["reasoning_effort"] = self._settings.gemini_reasoning_effort
         return ChatGoogleGenerativeAI(
             model=model,
             google_api_key=self._api_key(),
