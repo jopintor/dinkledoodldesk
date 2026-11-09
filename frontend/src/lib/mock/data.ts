@@ -39,6 +39,7 @@ export const KB_TITLES: Record<string, string> = {
   "KB-001": "How to Reset Your StaffID Password",
   "KB-003": "Locked StaffID Account",
   "KB-004": "MFA and Lost Phone",
+  "KB-009": "HubWatch CCTV Viewer Access",
   "KB-007": "DinkPOS Cashier PIN Reset and Cashier Access",
   "KB-011": "Staff Wi-Fi (PickleHub-Staff) Troubleshooting",
   "KB-012": "Member and Guest Wi-Fi FAQ",

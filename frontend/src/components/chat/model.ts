@@ -83,11 +83,11 @@ export function emptyConversation(firstName: string): Conversation {
 }
 
 const TITLE_RULES: [RegExp, string][] = [
-  [/staffid|password|forgot|locked out/i, "StaffID password reset"],
+  [/staffid|password|forgot|locked out|code never/i, "StaffID password reset"],
   [/dinkpos.*pin|pin.*dinkpos/i, "DinkPOS PIN locked"],
   [/staff wi-?fi|wi-?fi/i, "Wi-Fi keeps dropping"],
   [/card terminal|host not reachable|tappay/i, "Card terminal error"],
-  [/court|double|twice/i, "Court booking problem"],
+  [/double[- ]?book|twice|court \d/i, "Court booking problem"],
   [/member app/i, "Member App sign-in"],
 ];
 

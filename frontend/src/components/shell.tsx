@@ -67,7 +67,7 @@ export function navFor(user: User, escalationCount?: number): NavItem[] {
     ];
   }
   return [
-    { href: "/agent", label: `Escalation queue${queue}`, icon: Inbox },
+    { href: "/agent", label: `Escalations${queue}`, icon: Inbox },
     { label: "All tickets", icon: Ticket },
     { label: "Approvals", icon: Check },
     { href: "/admin/knowledge-base", label: "Knowledge base", icon: BookOpen },

@@ -171,6 +171,13 @@ function answerFor(text: string, user: MockUser): AskResponse {
     return { ...reply(""), assistant_message: null, tool_calls: [call] };
   }
 
+  if (staffSide && /(code never|didn't arrive|never arrived|no code)/.test(t)) {
+    return reply(
+      "Sorry – the SMS gateway is delayed this morning (see Service status), so the code may not come in time. I can pass this to the IT Service Desk so someone verifies you by phone and resets it from their side.",
+      { citations: [cite(1, "KB-024", "")], confidence: 0.45, action: "escalate", suggested_actions: ["escalate_to_agent"] },
+    );
+  }
+
   if (staffSide && /(password|forgot|staffid|locked out|lockout)/.test(t)) {
     return reply(
       "Sorry about that! You have two options:\n1. Try the self-service portal again at id.picklehub.example/reset – it needs your MFA app or a code to your mobile.\n2. I can reset it for you here after a quick identity check. [1]\nIf the portal says your account is locked, wait 15 minutes – it clears by itself. [2]",
@@ -207,7 +214,7 @@ function answerFor(text: string, user: MockUser): AskResponse {
     return res;
   }
 
-  if (/(double|twice|court).*(book|booked)|book.*(twice|double)/.test(t)) {
+  if (/double[- ]?book|twice|court \d/.test(t)) {
     return reply(
       "Double bookings usually come from the Member App and CourtBook syncing late. Pull down to refresh your bookings; if it still shows twice after 5 minutes, I can report it so the front desk cancels the duplicate. You won't be charged twice. [1]",
       { citations: [cite(1, "KB-020", "Duplicate bookings")], confidence: 0.77, suggested_actions: ["create_ticket"] },
@@ -392,16 +399,11 @@ route("POST", "/escalations", async (req, _p, user) => {
     priority: "P2",
     first_reply_minutes: 60,
     message: `I've passed this to the IT Service Desk and created ticket ${ticketNumber} with this chat attached, so you won't need to repeat yourself. Priority P2 – first reply within 1 hour.`,
-    // In the mock, Kat "joins" straight away so the demo shows the hand-over.
-    agent: { full_name: "Kat Mendoza" },
-    agent_greeting: `Hi ${firstName(user!)}, Kat from IT here. I've read the chat – give me a minute to look into it.`,
+    // Prototype scope: no live agent takeover. The chat shows the escalation notice and the
+    // agent works the ticket outside the chat.
+    agent: null,
+    agent_greeting: null,
   };
-  s.escalations[0].status = "assigned";
-  s.escalations[0].assigned_agent = { id: "u-kat", full_name: "Kat Mendoza" };
-  s.conversations.get(convoId)!.assigned_agent = { id: "u-kat", full_name: "Kat Mendoza" };
-  s.conversations.get(convoId)!.messages.push({
-    id: nextId("m"), sender_type: "agent", sender_name: "Kat Mendoza", content: res.agent_greeting!, created_at: now(),
-  });
   return json(res, 201);
 });
 

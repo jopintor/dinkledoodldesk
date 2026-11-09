@@ -21,6 +21,11 @@ import type { ConversationDetail, Escalation, Priority, Role, User } from "@/lib
 
 const ROLES: Role[] = ["agent", "admin"];
 
+// Prototype scope (PROJECT_PLAN.md §5): the escalation list is read-only. Agents work the
+// ticket in Jira; there is no live takeover. The take-over / resolve / reply UI below was
+// built before the scope cut and stays switched off.
+const READ_ONLY = true;
+
 export default function AgentPage() {
   const user = useRequireRole(ROLES);
   if (!user) return <FullPageLoading />;
@@ -70,7 +75,7 @@ function AgentQueue({ user }: { user: User }) {
       <div className="grid min-h-screen lg:h-screen lg:grid-cols-[420px_1fr]">
         <section className="flex flex-col gap-5 border-line bg-page px-6 py-6 lg:overflow-y-auto lg:border-r" aria-label="Escalation queue">
           <div>
-            <h1 className="text-h1 text-ink">Escalation queue</h1>
+            <h1 className="text-h1 text-ink">Escalations</h1>
             <p className="text-body-lg text-body">
               {items === null
                 ? "Loading…"
@@ -228,7 +233,7 @@ function TicketDetail({ escalation: e, user, onChanged }: { escalation: Escalati
             </div>
             <h2 className="max-w-[340px] text-h2 text-ink">{e.title ?? "Escalated chat"}</h2>
           </div>
-          {!resolved && (
+          {!resolved && !READ_ONLY && (
             <div className="flex flex-wrap gap-3">
               <Button variant="secondary" icon={<Check size={18} aria-hidden />} onClick={() => setShowResolve((v) => !v)} disabled={!!busy}>
                 Resolve
@@ -336,9 +341,11 @@ function TicketDetail({ escalation: e, user, onChanged }: { escalation: Escalati
           <div className="flex flex-wrap items-baseline gap-3">
             <h3 className="text-h3 text-ink">Conversation</h3>
             <span className="text-caption text-body">
-              {mine
-                ? "You have this chat – DinkDesk stays quiet until you resolve it"
-                : "DinkDesk is paused for this chat until you take over or resolve it"}
+              {READ_ONLY
+                ? "Read-only · the ticket is handled in Jira"
+                : mine
+                  ? "You have this chat – DinkDesk stays quiet until you resolve it"
+                  : "DinkDesk is paused for this chat until you take over or resolve it"}
             </span>
           </div>
           {convo === null && <Spinner className="text-primary" />}
@@ -353,7 +360,7 @@ function TicketDetail({ escalation: e, user, onChanged }: { escalation: Escalati
               <SystemLine key={m.id}>{m.content}</SystemLine>
             ),
           )}
-          {mine && !resolved && (
+          {mine && !resolved && !READ_ONLY && (
             <form onSubmit={onSend} className="flex items-end gap-3 rounded-lg border border-line-strong bg-card py-2 pr-2 pl-4 shadow-card focus-within:border-primary">
               <label htmlFor="agent-reply" className="sr-only">
                 Reply to {e.user.full_name}
