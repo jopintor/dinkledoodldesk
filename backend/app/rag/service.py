@@ -1,7 +1,13 @@
-"""One chat turn: route -> cache -> retrieve -> (maybe) generate -> check citations.
+"""One chat turn: guard -> route -> cache -> retrieve -> (maybe) generate -> check output.
 
-At most one LLM generation call per turn, none in the low band or for template routes
-(docs/ai-design.md §3.2). The caller passes an already redacted message.
+At most one LLM generation call per turn, none in the low band, for template routes or
+for blocked input (docs/ai-design.md §3.2). The caller passes an already redacted message.
+
+Guardrails (docs/guardrails-and-security.md §2): the injection heuristics run first and
+block (refusal template), flag (tools disabled) or allow; user and KB text are escaped so
+they cannot close our prompt tags; the answer is checked for the canary, a prompt echo,
+exfiltration links and PII. Every block, flag, redaction and escalation is written to the
+guardrail log that the admin Guardrail Log panel reads.
 """
 
 import logging
@@ -10,7 +16,7 @@ import secrets
 import time
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from functools import lru_cache
 from typing import Literal
 
@@ -18,6 +24,13 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 
 from app.ai import prompts, routing, templates
 from app.config import Settings, get_settings
+from app.guardrails import injection
+from app.guardrails.events import (
+    GuardrailEventRecord,
+    GuardrailLog,
+    InMemoryGuardrailLog,
+    get_guardrail_log,
+)
 from app.llm import LLMGateway, LLMUnavailable, get_llm_provider
 from app.rag.cache import ResponseCache, cache_key
 from app.rag.retriever import RetrievalResult, Retriever, ScoredChunk
@@ -32,15 +45,39 @@ HISTORY_TURNS = 6
 DEGRADED_SOURCES = 3
 OFFER_HELP = ["create_ticket", "escalate_to_agent"]
 
+# escalate_to_agent `reason` values (ai-design.md §6.4) per always-escalate intent.
+ESCALATION_REASONS = {
+    routing.HUMAN_REQUEST: "user_requested",
+    routing.PRIVACY_REQUEST: "sensitive_topic",
+    routing.SECURITY_INCIDENT: "sensitive_topic",
+    routing.HIGH_PRIORITY: "high_priority",
+}
+# Input events that count towards INJ-REPEAT and the cooldown.
+_ABUSE_TYPES = {
+    "prompt_injection",
+    "personal_data_request",
+    "secret_request",
+    "other_account_request",
+}
+
+
+class GuardrailCooldown(Exception):
+    """Too many blocked messages from this user; the API answers 429."""
+
+    def __init__(self, retry_after_s: int) -> None:
+        super().__init__(f"chat cooldown, retry after {retry_after_s}s")
+        self.retry_after_s = retry_after_s
+
 
 @dataclass(frozen=True)
 class Caller:
-    """Who is asking. Built from the JWT user once auth (PR #15) is wired in."""
+    """Who is asking, from the signed-in user (see app.rag.api.caller_for)."""
 
     role: str
     first_name: str = "there"
     club_name: str = "not set"
     job_title: str = "not set"
+    user_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -62,7 +99,7 @@ class Citation:
 class RagAnswer:
     content: str
     answer_mode: Literal["generated", "cached", "template", "degraded"]
-    action: Literal["answer", "clarify", "escalate"]
+    action: Literal["answer", "clarify", "escalate", "refuse"]
     intent: str | None
     confidence: float
     retrieval_confidence: float | None = None
@@ -72,6 +109,12 @@ class RagAnswer:
     # True when policy requires a hand-off (security, privacy, person requested); the tool
     # executor (issue #7) turns it into an escalate_to_agent call. False = only offered.
     escalate: bool = False
+    # escalate_to_agent reason when action == "escalate" (low_confidence, sensitive_topic, ...)
+    escalation_reason: str | None = None
+    # Capability limiting: False on a flagged turn, so the tool executor offers no tools.
+    tools_allowed: bool = True
+    # Input guardrail outcome shown to the user: {"type", "action", "rule_ids", "score"}.
+    guardrail: dict | None = None
     model: str | None = None
     prompt_version: str = prompts.PROMPT_VERSION
     kb_version: str | None = None
@@ -122,11 +165,16 @@ class RagService:
         gateway: LLMGateway,
         retriever: Retriever,
         cache: ResponseCache,
+        guardrail_log: GuardrailLog | None = None,
+        redactor: injection.Redactor | None = None,
     ) -> None:
         self.settings = settings
         self.gateway = gateway
         self.retriever = retriever
         self.cache = cache
+        self.guardrail_log = guardrail_log if guardrail_log is not None else InMemoryGuardrailLog()
+        # PII redactor for the output check (app.guardrails.pii.redact once PR #16 is merged).
+        self.redactor = redactor
         self.canary = f"DD-{secrets.token_hex(4)}"
 
     def answer(
@@ -136,10 +184,41 @@ class RagService:
         history: Sequence[HistoryTurn] = (),
         *,
         cacheable: bool = True,
+        pii_types: Sequence[str] = (),
     ) -> RagAnswer:
-        """`message` must already be PII-redacted. `cacheable=False` when it contained PII."""
+        """`message` must already be PII-redacted; `pii_types` = entity types that were masked.
+
+        Raises GuardrailCooldown when the user has had too many blocked messages.
+        """
         started = time.monotonic()
-        result = self._answer(message, caller, list(history)[-HISTORY_TURNS:], cacheable)
+        if pii_types:
+            self._record(caller, "input", "pii_redacted", "allowed_redacted", "regex",
+                         rule_ids=tuple(pii_types))  # fmt: skip
+        recent = self._recent_abuse(caller)
+        self._check_cooldown(caller, recent)
+
+        verdict = injection.scan_input(message, recent_flags=len(recent))
+        guardrail = None
+        if verdict.action != "allow":
+            event_action = "blocked" if verdict.blocked else "flagged"
+            self._record(caller, "input", verdict.type or "prompt_injection", event_action,
+                         "heuristic", verdict.score, verdict.rule_ids)  # fmt: skip
+            guardrail = {
+                "type": verdict.type,
+                "action": event_action,
+                "rule_ids": list(verdict.rule_ids),
+                "score": verdict.score,
+            }
+
+        if verdict.blocked:
+            result = self._refusal(verdict)
+        else:
+            history_list = list(history)[-HISTORY_TURNS:]
+            result = self._answer(verdict.text, caller, history_list, cacheable and not pii_types)
+            result.tools_allowed = verdict.tools_allowed
+        result.guardrail = guardrail
+        if result.action == "escalate" and result.escalation_reason != "output_blocked":
+            self._record_escalation(caller, result)
         result.latency_ms = int((time.monotonic() - started) * 1000)
         return result
 
@@ -162,6 +241,7 @@ class RagService:
             return RagAnswer(
                 text, "template", "escalate", intent, 0.0,
                 suggested_actions=["escalate_to_agent"], escalate=True,
+                escalation_reason=ESCALATION_REASONS[intent],
             )  # fmt: skip
 
         forced = intent in routing.ALWAYS_ESCALATE
@@ -195,16 +275,29 @@ class RagService:
             return self._degraded(retrieval, forced, base)
 
         text = generation.text.strip()
-        if self.canary in text:
-            log.error("guardrail: system prompt canary in model output; answer replaced")
-            return self._low_confidence(retrieval, forced, base, model=generation.model)
+        checked = injection.check_output(text, self.canary, self.redactor)
+        if checked.action == "block":
+            log.error("guardrail: system prompt leak in model output; answer replaced")
+            self._record(caller, "output", checked.type or "system_prompt_leak", "blocked",
+                         "canary", rule_ids=checked.rule_ids)  # fmt: skip
+            return self._low_confidence(
+                retrieval, forced, base, model=generation.model, reason="output_blocked"
+            )
+        if checked.action == "sanitize":
+            pii_only = checked.type == "pii_redacted"
+            self._record(caller, "output", checked.type or "exfiltration",
+                         "allowed_redacted" if pii_only else "flagged", "regex",
+                         rule_ids=checked.rule_ids + checked.pii_types)  # fmt: skip
+            text = checked.text
+            key = None  # never cache an answer the model had to be corrected on
         if text.startswith(prompts.NO_ANSWER):
             return self._low_confidence(retrieval, forced, base, model=generation.model)
 
         clean, used, invalid = apply_citations(text, len(retrieval.chunks))
         if invalid:
-            # TODO: write a guardrail_events row (stage output, invalid_citation, flagged).
             log.warning("guardrail: dropped invalid citations %s", invalid)
+            self._record(caller, "output", "invalid_citation", "flagged", "regex",
+                         rule_ids=("OUT-CITATION",))  # fmt: skip
         confidence = retrieval.retrieval_confidence * (1.0 if used else 0.5)
         if confidence < self.settings.rag_medium_threshold:
             return self._low_confidence(retrieval, forced, base, model=generation.model)
@@ -217,6 +310,7 @@ class RagService:
             citations=[self._citation(n, retrieval.chunks[n - 1]) for n in used],
             suggested_actions=self._suggestions(retrieval.band, forced),
             escalate=forced,
+            escalation_reason=ESCALATION_REASONS.get(intent) if forced else None,
             model=generation.model,
             **base,
         )
@@ -243,17 +337,88 @@ class RagService:
             allowed_tools=prompts.NO_TOOLS,
             canary=self.canary,
         )
+        # User, history and KB text can't open or close our <context>/<history>/<user_message>
+        # blocks (guardrails doc §2.2).
+        esc = injection.escape_delimiters
         messages: list[BaseMessage] = [SystemMessage(system)]
         for turn in history:
             if turn.role == "user":
-                messages.append(HumanMessage(f"<history>\n{turn.content}\n</history>"))
+                messages.append(HumanMessage(f"<history>\n{esc(turn.content)}\n</history>"))
             else:
-                messages.append(AIMessage(turn.content))
+                messages.append(AIMessage(esc(turn.content)))
         context = prompts.build_context(
-            [(c.context_header, c.chunk.text) for c in retrieval.chunks]
+            [(c.context_header, esc(c.chunk.text)) for c in retrieval.chunks]
         )
-        messages.append(HumanMessage(prompts.build_user_turn(context, message)))
+        messages.append(HumanMessage(prompts.build_user_turn(context, esc(message))))
         return messages
+
+    # ---- guardrail helpers ----------------------------------------------------
+
+    def _record(
+        self,
+        caller: Caller,
+        stage: str,
+        type_: str,
+        action: str,
+        detector: str,
+        score: float | None = None,
+        rule_ids: Sequence[str] = (),
+    ) -> None:
+        event = GuardrailEventRecord(
+            stage=stage, type=type_, action=action, detector=detector, score=score,
+            rule_ids=tuple(rule_ids), user_id=caller.user_id, user_role=caller.role,
+        )  # fmt: skip
+        try:
+            self.guardrail_log.record(event)
+        except Exception:  # the log must never break a chat turn
+            log.exception("could not write guardrail event %s/%s", stage, type_)
+
+    def _record_escalation(self, caller: Caller, result: RagAnswer) -> None:
+        reason = result.escalation_reason or "low_confidence"
+        if reason == "low_confidence":
+            rule_ids: tuple[str, ...] = ("RAG-LOW-CONFIDENCE",)
+            detector = "confidence"
+        else:
+            rule_ids = (f"INTENT-{(result.intent or 'unknown').upper()}",)
+            detector = "policy"
+        # A forced hand-off is "escalated"; a low-confidence reply only offers one.
+        action = "escalated" if result.escalate else "flagged"
+        self._record(caller, "retrieval", reason, action, detector,
+                     result.retrieval_confidence, rule_ids)  # fmt: skip
+
+    def _recent_abuse(self, caller: Caller) -> list[GuardrailEventRecord]:
+        """This user's flagged/blocked input events in the last 10 minutes, oldest first."""
+        if caller.user_id is None:
+            return []
+        since = datetime.now(UTC) - timedelta(seconds=injection.REPEAT_WINDOW_S)
+        try:
+            events = self.guardrail_log.for_user(caller.user_id, since)
+        except Exception:
+            log.exception("could not read guardrail events")
+            return []
+        return [
+            e for e in events
+            if e.stage == "input" and e.type in _ABUSE_TYPES and e.action in ("blocked", "flagged")
+        ]  # fmt: skip
+
+    def _check_cooldown(self, caller: Caller, recent: list[GuardrailEventRecord]) -> None:
+        limit = self.settings.guardrail_cooldown_blocks
+        blocks = [e for e in recent if e.action == "blocked"]
+        if limit <= 0 or len(blocks) < limit:
+            return
+        until = blocks[-1].created_at + timedelta(seconds=injection.COOLDOWN_S)
+        retry_after = max(1, int((until - datetime.now(UTC)).total_seconds()))
+        self._record(caller, "input", "rate_limited", "blocked", "policy",
+                     rule_ids=("INJ-COOLDOWN",))  # fmt: skip
+        raise GuardrailCooldown(retry_after)
+
+    @staticmethod
+    def _refusal(verdict: injection.InputVerdict) -> RagAnswer:
+        text = {
+            "secret_request": templates.REFUSE_LEAK,
+            "personal_data_request": templates.REFUSE_PERSONAL_DATA,
+        }.get(verdict.type or "", templates.REFUSE_INJECTION)
+        return RagAnswer(text, "template", "refuse", "abuse", 0.0, tools_allowed=False)
 
     @staticmethod
     def _citation(n: int, item: ScoredChunk) -> Citation:
@@ -267,8 +432,17 @@ class RagService:
         return [] if band == "high" else list(OFFER_HELP)
 
     def _low_confidence(
-        self, retrieval: RetrievalResult, forced: bool, base: dict, *, model: str | None = None
+        self,
+        retrieval: RetrievalResult,
+        forced: bool,
+        base: dict,
+        *,
+        model: str | None = None,
+        reason: str | None = None,
     ) -> RagAnswer:
+        if reason is None:
+            reason = ESCALATION_REASONS.get(base["intent"], "low_confidence")
+            reason = reason if forced else "low_confidence"
         if forced and base["intent"] == routing.SECURITY_INCIDENT:
             text = templates.SECURITY_ESCALATION
         elif self.retriever.chunk_count == 0:
@@ -282,6 +456,7 @@ class RagService:
             confidence=0.0,
             suggested_actions=["escalate_to_agent"] if forced else list(OFFER_HELP),
             escalate=forced,
+            escalation_reason=reason,
             model=model,
             **base,
         )
@@ -300,6 +475,7 @@ class RagService:
             citations=[self._citation(n, item) for n, item in enumerate(sources, start=1)],
             suggested_actions=["escalate_to_agent"] if forced else list(OFFER_HELP),
             escalate=forced,
+            escalation_reason=ESCALATION_REASONS.get(base["intent"]) if forced else None,
             **base,
         )
 
@@ -315,4 +491,6 @@ def get_rag_service() -> RagService:
     )
     retriever = Retriever(store, gateway.embed_query, settings)
     cache = ResponseCache(settings.response_cache_path or None, settings.response_cache_ttl_s)
-    return RagService(settings, gateway, retriever, cache)
+    return RagService(
+        settings, gateway, retriever, cache, get_guardrail_log(), injection.load_pii_redactor()
+    )

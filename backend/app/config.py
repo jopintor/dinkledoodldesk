@@ -73,6 +73,13 @@ class Settings(BaseSettings):
     response_cache_path: str = ".cache/response_cache.json"
     response_cache_ttl_s: int = 24 * 3600
 
+    # Guardrails (docs/guardrails-and-security.md). memory = in-process ring buffer (no DB
+    # needed); db = rows in the guardrail_events table.
+    guardrail_log_backend: Literal["memory", "db"] = "memory"
+    # Blocked messages from one user within 10 minutes that start a 10-minute chat cooldown
+    # (429). 0 turns the cooldown off, e.g. for a long "try to break it" demo.
+    guardrail_cooldown_blocks: int = 3
+
     # Automation / ticketing
     n8n_webhook_base_url: str = "http://localhost:5678/webhook"
     jira_base_url: str = ""
