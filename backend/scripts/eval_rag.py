@@ -2,9 +2,9 @@
 
 Run from `backend/` (see eval/README.md for the full guide):
 
-    python scripts/eval_rag.py                                  # in-process, all 50, with judge
-    python scripts/eval_rag.py --no-judge                       # no judge calls
-    python scripts/eval_rag.py --base-url https://xyz.trycloudflare.com --no-judge
+    python scripts/eval_rag.py                                  # in-process, all 50, no judge
+    python scripts/eval_rag.py --base-url https://xyz.trycloudflare.com
+    python scripts/eval_rag.py --judge                          # optional LLM judge (spends quota)
     python scripts/eval_rag.py --category normal --ids GS-001,GS-002
     python scripts/eval_rag.py --from ../eval/results/<run>/run.json   # judge / re-report later
 
@@ -12,9 +12,9 @@ Writes `eval/results/<date>-<label>/` with run.json (everything), metrics.json,
 eval_run_payload.json (body for POST /api/v1/eval/runs) and report.md.
 
 LLM cost per run (Gemini free tier): one generation call per question that reaches the LLM
-(templates and low-confidence items make none), plus one judge call per answered question.
-All 50 questions ≈ 60–70 calls; the judge runs after all questions are asked, through the
-same rate-limited gateway, and stops cleanly if the daily quota runs out.
+(templates and low-confidence items make none), about 35 for all 50. The LLM judge
+(faithfulness / relevance) is optional and off by default; with --judge it adds one call per
+answered question, runs after all questions are asked, and stops if the daily quota runs out.
 """
 
 import argparse
@@ -40,7 +40,10 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p.add_argument("--label", help="run name (default: prompt version + target)")
     p.add_argument("--notes", default="", help="free text stored with the run")
     p.add_argument("--out", type=Path, help="output folder (default: eval/results/<date>-<label>)")
-    p.add_argument("--no-judge", action="store_true", help="skip the LLM judge (no extra calls)")
+    p.add_argument(
+        "--judge", action="store_true", help="optional: run the LLM judge (spends Gemini quota)"
+    )
+    p.add_argument("--no-judge", action="store_true", help=argparse.SUPPRESS)  # old default
     p.add_argument("--max-judge-calls", type=int, default=60, help="judge call budget (default 60)")
     p.add_argument(
         "--pace", type=float, help="seconds between questions (default 0 in-process, 3 over HTTP)"
@@ -62,7 +65,9 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
         type=Path,
         help="load an earlier run.json: judge what is not judged yet and rewrite the report",
     )
-    return p.parse_args(argv)
+    args = p.parse_args(argv)
+    args.no_judge = not args.judge
+    return args
 
 
 def make_gateway_judge(gateway, max_calls: int) -> Judge:
@@ -191,7 +196,7 @@ def main(argv: list[str] | None = None) -> int:
         print(
             "\nNo LLM key configured on this PC, so the judge was skipped. Re-run later on a PC"
             " with GEMINI_API_KEY in .env:\n"
-            f"    python scripts/eval_rag.py --from {out_dir / 'run.json'}"
+            f"    python scripts/eval_rag.py --judge --from {out_dir / 'run.json'}"
         )
     else:
         judge = make_gateway_judge(gateway, args.max_judge_calls)

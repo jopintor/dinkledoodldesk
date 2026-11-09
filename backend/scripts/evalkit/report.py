@@ -47,7 +47,7 @@ def render(run: dict) -> str:
         f"- **Target:** {cfg.get('target', '?')} · provider `{cfg.get('provider', '?')}` · "
         f"model `{run.get('model_name') or '?'}` · prompt `{run.get('prompt_version') or '?'}` · "
         f"KB `{cfg.get('kb_version') or '?'}` · git `{run.get('git_sha') or '?'}`",
-        f"- **Judge:** {cfg.get('judge') or 'not run (--no-judge)'}"
+        f"- **Judge:** {cfg.get('judge') or 'not run (optional, enable with --judge)'}"
         + (f" · {m['judged']} items judged" if m["judged"] else ""),
     ]
     if run.get("notes"):

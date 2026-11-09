@@ -322,5 +322,5 @@ def test_end_to_end_run_writes_metrics_and_report(indexed_kb, tmp_path):
 def test_report_renders_without_judge_or_results():
     run = runner.build_run({"label": "empty"}, [])
     text = report.render(run)
-    assert "not run (--no-judge)" in text
+    assert "not run (optional" in text
     assert "all items passed" in text

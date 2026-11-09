@@ -4,8 +4,10 @@ Two tools, both run from `backend/`:
 
 | Tool | What it measures | LLM cost |
 |---|---|---|
-| `scripts/eval_rag.py` | Golden set (50 questions) → behaviour accuracy, retrieval hit rate, context precision, faithfulness, answer relevance, correctness, deflection, latency p50/p95 | ~35 generation calls + ~25 judge calls for all 50 |
+| `scripts/eval_rag.py` | Golden set (50 questions) → **retrieval hit rate, behaviour accuracy, latency p50/p95, deflection rate** (plus context precision, refusal accuracy) | ~35 generation calls for all 50 |
 | `scripts/load_test.py` | Locust load test → requests/s, p50/p95/p99, failures, at 10–30 users | **0** with the default `cached` profile |
+
+These four metrics plus a small load test are what the prototype needs (PROJECT_PLAN.md §5). The LLM-as-judge scores (faithfulness, answer relevance, correctness) are **optional**: off by default, only with `--judge`, and not needed for Sprint 2 — skip them to save Gemini quota.
 
 Results go to `eval/results/<date>-<label>/`:
 
@@ -57,7 +59,7 @@ He sends you the `https://<random>.trycloudflare.com` URL. It changes every time
 ### 3. Run the evaluation over the tunnel
 
 ```bash
-python scripts/eval_rag.py --base-url https://<url> --no-judge --label sprint2-tunnel
+python scripts/eval_rag.py --base-url https://<url> --label sprint2-tunnel
 ```
 
 It signs in as the seeded demo users (member, staff, agent, admin1), asks all 50 questions one by one (3 s apart, about 5 minutes) and prints one line per question:
@@ -66,13 +68,7 @@ It signs in as the seeded demo users (member, staff, agent, admin1), asks all 50
 [ 1/50] ok   GS-001 normal  expected=answer  got=answer  generated  2310 ms hit@5
 ```
 
-`--no-judge` skips the faithfulness/relevance judge, because the judge needs a Gemini key on the PC that runs the script. Then send Jose the folder name it prints; he adds the judge scores on his PC with:
-
-```bash
-python scripts/eval_rag.py --from ../eval/results/<folder>/run.json
-```
-
-(If you have a Gemini key in your own `.env`, leave out `--no-judge` and the script judges at the end itself.)
+No judge runs (it is optional and off by default), so this needs no Gemini key on your laptop. The report shows "—" for faithfulness and relevance; that is expected.
 
 **Done when** `eval/results/<folder>/report.md` exists and the "Errors" line in it says `0`.
 
@@ -127,8 +123,8 @@ Each simulated user signs in, then asks a demo question every 2–5 s, sometimes
 | *(no `--base-url`)* | In-process: calls the RAG service directly. Needs the KB index on this PC (`python -m app.rag.ingest`). Jose's default. |
 | `--base-url URL` | Over HTTP (tunnel or `http://localhost:8000`). |
 | `--category normal,pii` · `--ids GS-001,GS-019` · `--limit 5` | Run part of the set (cheap re-checks). |
-| `--no-judge` · `--max-judge-calls 60` | Skip the judge, or cap its calls. |
-| `--from run.json` | Load an earlier run: judge what isn't judged yet and rewrite the report. Makes no DinkDesk calls. |
+| `--judge` · `--max-judge-calls 60` | Optional: also run the LLM judge (faithfulness, relevance, correctness), capped at N calls. Needs a Gemini key on this PC and spends quota; not needed for the prototype. |
+| `--from run.json` | Load an earlier run and rewrite the report (add `--judge` to judge it). Makes no DinkDesk calls. |
 | `--label prompt-v2` · `--notes "..."` | Name the run (use the prompt version, so before/after runs compare). |
 | `--use-cache` | In-process only: allow cached answers (default: always a fresh answer). |
 | `--pace 5` | Seconds between questions (default 0 in-process, 3 over HTTP). |
@@ -152,9 +148,9 @@ Each simulated user signs in, then asks a demo question every 2–5 s, sometimes
 | Guardrail block rate | Injection items that were refused (stricter) | — |
 | Retrieval hit rate | An expected KB document in the top 5 retrieved | — |
 | Context precision | RAGAS formula on document ids: are the expected docs ranked high? | ≥ 0.75 |
-| Faithfulness | Judge splits the answer into claims; supported ÷ total, against the retrieved chunks | ≥ 0.85 |
-| Answer relevance | Judge's 0–1 score: does the answer address the question? | ≥ 0.80 |
-| Correctness | Judge's 0–1 score against `reference_answer` | — |
+| Faithfulness (optional, `--judge`) | Judge splits the answer into claims; supported ÷ total, against the retrieved chunks | ≥ 0.85 |
+| Answer relevance (optional) | Judge's 0–1 score: does the answer address the question? | ≥ 0.80 |
+| Correctness (optional) | Judge's 0–1 score against `reference_answer` | — |
 | Deflection rate | `answer` / `call_tool:*` items DinkDesk resolved itself (answered or ran a tool), without escalating, refusing or asking back | — |
 | Latency p50 / p95 | The service's own `latency_ms` (network excluded); also shown for generated answers only | p95 ≤ 6 s |
 
@@ -171,7 +167,7 @@ Limits worth stating in the QA report: the judge is the same model family as the
 | Many `degraded` answers or `LLM unavailable` | Gemini per-minute or daily quota. Wait a minute (the daily quota resets at midnight US Pacific, 3–4 PM Philippine time) and rerun the failed items with `--ids`. |
 | Load-test preflight says "not cached" | Step 4: `warm_cache.py`, then restart `uvicorn`. |
 | `502` / `530` from the tunnel | The tunnel or Jose's server stopped; ask for a new URL. |
-| The judge was skipped | No key on this PC; use `--from run.json` on Jose's PC. |
+| `--judge` was skipped | No key on this PC; the judge is optional, so ignore it or run `--judge --from run.json` on Jose's PC. |
 
 ## Tests
 
