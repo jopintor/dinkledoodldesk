@@ -24,4 +24,4 @@ def test_missing_key_is_reported_not_raised_until_used():
 def test_gemini_builds_chat_model_with_key():
     provider = get_llm_provider(Settings(_env_file=None, gemini_api_key="test-key"))
     model = provider.chat_model()
-    assert model.model.endswith("gemini-2.5-flash")
+    assert model.model.endswith("gemini-3.5-flash")
