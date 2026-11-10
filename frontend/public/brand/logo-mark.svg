@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="44" height="42" viewBox="0 0 44 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Logo/Mark">
+<path d="M0 12C0 5.37258 5.37258 0 12 0H28C34.6274 0 40 5.37258 40 12V28C40 34.6274 34.6274 40 28 40H12C5.37258 40 0 34.6274 0 28V12Z" fill="#3F6136"/>
+<g id="Icon">
+<path id="Vector" d="M20 10C24 10 27 12.6 27 17C27 21.4 24 24 20 24C16 24 13 21.4 13 17C13 12.6 16 10 20 10Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="white"/>
+<path id="Vector_2" d="M18.5 24V30H21.5V24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="white"/>
+</g>
+<circle id="Ball" cx="35" cy="33" r="8" fill="#E9C54A" stroke-width="2" stroke="#FFFDF8"/>
+</g>
+</svg>

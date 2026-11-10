@@ -6,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import __version__
 from app.config import get_settings
 from app.llm import get_llm_provider
-from app.routers import auth
 
 settings = get_settings()
 
@@ -22,9 +21,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-)
 
-app.include_router(auth.router)
+)
 
 
 @app.get("/health", tags=["meta"])

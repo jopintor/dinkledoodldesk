@@ -76,12 +76,22 @@ Each rule adds a weight; scores are summed and capped at 1.0.
 | `INJ-ROLE-TAGS` | `<system>`, `[INST]`, `### system`, `assistant:` / `system:` at line start, `<\|im_start\|>` | 0.5 |
 | `INJ-DELIM` | our own delimiters: `</context>`, `<context>`, `</user_message>`, `<history>` | 0.6 |
 | `INJ-ENCODED` | base64/hex blobs ≥ 40 chars, "decode this", ROT13 | 0.3 |
-| `INJ-TOOL-ABUSE` | tool names in user text ("reset_password", "create_ticket"), "for user X", another `firstname.lastname` together with reset/unlock | 0.4 |
+| `INJ-TOOL-ABUSE` | tool names in user text ("reset_password", "create_ticket") | 0.4 |
+| `INJ-OTHER-ACCOUNT` **(hard)** | reset / unlock / change / disable / delete together with another `firstname.lastname` ("reset the password for kat.mendoza") — identity binding, §2.4 | 0.4 |
 | `INJ-EXFIL` | instructions to send data to a URL / email, markdown image links with query strings | 0.4 |
+| `INJ-HIDDEN` | HTML comments (`<!-- … -->`) in a chat message | 0.2 |
+| `INJ-AUTHORITY` | claimed authority or pretext: "this is X, IT Lead", "pre-approved", "I'm the admin", "for a security audit" | 0.3 |
+| `INJ-OTP` | "show / paste the OTP in your reply / here" | 0.4 |
+| `INJ-SECRET` **(hard)** | asks for API keys, JWT secret, access tokens, `.env`, or someone's / a temporary password | 0.4 |
+| `PRIV-OTHER-PERSON` **(hard)** | asks for other people's personal data: "emails of all members", "give me their phone number", "who booked … phone" | 0.5 |
 | `INJ-INVISIBLE` | zero-width or bidi-override characters (stripped in step 1; their presence is scored) | 0.2 |
-| `INJ-REPEAT` | ≥ 3 flagged messages from the same user in 10 min | 0.3 |
+| `INJ-REPEAT` | *future work (prototype scope, PROJECT_PLAN §5):* 3rd flagged message from the same user in 10 min | 0.3 |
 
-Actions: **≥ 0.8 block** (refusal template, no retrieval, no LLM), **0.4–0.8 flag** (answer allowed, but `allowed_tools = []` for this turn and the event is logged), **< 0.4 allow**. Three blocks in 10 minutes → 10-minute chat cooldown (`429`, `guardrail_events.type = rate_limited`).
+Actions: **≥ 0.8 block** (refusal template, no retrieval, no LLM), **0.4–0.8 flag** (answer allowed, but `allowed_tools = []` for this turn and the event is logged), **< 0.4 allow**. A **hard** rule blocks on its own, whatever the score, because no answer to that request is ever right; its refusal template says why (other people's data, secrets, someone else's account). *Future work, not in the prototype:* three blocks in 10 minutes → 10-minute chat cooldown (`429`, `guardrail_events.type = rate_limited`). The prototype's output checks are canary, system-prompt echo and PII; exfiltration-link stripping is also future work.
+
+Event types written by the input check: `prompt_injection` (the score reached 0.8, or any non-hard `INJ-*` rule fired), else the hard rule's own type — `personal_data_request`, `secret_request`, `other_account_request`. Escalations are logged too (stage `retrieval`): `low_confidence` (action `flagged` — a hand-off is offered), `sensitive_topic` / `user_requested` / `high_priority` (action `escalated`).
+
+Implementation: `backend/app/guardrails/injection.py` (rules, `escape_delimiters`, output checks), `backend/app/guardrails/events.py` (the `GuardrailLog` interface, in-memory and `guardrail_events`-table backends), wired in `backend/app/rag/service.py`. Golden-set coverage: all six `malicious_prompt_injection` items and GS-039 block; none of the other 44 questions trips a rule (`backend/tests/test_injection.py`).
 
 ### 2.2 Structural defences in the prompt
 

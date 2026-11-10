@@ -7,5 +7,6 @@ directly. Switching Gemini -> OpenAI is then a single `LLM_PROVIDER` env change.
 
 from app.llm.base import LLMProvider, LLMProviderError
 from app.llm.factory import get_llm_provider
+from app.llm.gateway import LLMGateway, LLMUnavailable
 
-__all__ = ["LLMProvider", "LLMProviderError", "get_llm_provider"]
+__all__ = ["LLMGateway", "LLMProvider", "LLMProviderError", "LLMUnavailable", "get_llm_provider"]
