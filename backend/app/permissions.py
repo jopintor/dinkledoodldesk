@@ -1,22 +1,14 @@
 ROLE_PERMISSIONS: dict[str, set[str]] = {
-<<<<<<< HEAD
-    "member": {"ticket:create", "ticket:read-own", "chat:use", "status:read"},
+    "member": {"ticket:create", "ticket:read-own", "chat:use"},
     "staff": {"ticket:create", "ticket:read-own", "chat:use", "status:read"},
     "agent": {
-        "ticket:create",
-        "ticket:read-own",
         "ticket:read-any",
         "ticket:update",
         "chat:use",
         "status:read",
+        "kb:search",
     },
     "admin": {"*"},  # everything, including status:update
-=======
-    "member": {"ticket:create", "ticket:read-own", "chat:use"},
-    "staff": {"ticket:create", "ticket:read-own", "chat:use", "status:read"},
-    "agent": {"ticket:read-any", "ticket:update", "chat:use", "status:read", "kb:search"},
-    "admin": {"*"},  # everything
->>>>>>> origin/main
 }
 
 

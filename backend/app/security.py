@@ -4,15 +4,9 @@ import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
 
-<<<<<<< HEAD
-from app.config import Settings
-
-settings = Settings()
-=======
 from app.config import get_settings
 
 settings = get_settings()
->>>>>>> origin/main
 _hasher = PasswordHasher()  # argon2id by default
 
 # Used to keep timing similar when the email doesn't exist.
@@ -38,16 +32,8 @@ def create_token(user_id: int, role: str) -> str:
         "iat": now,
         "exp": now + timedelta(minutes=settings.jwt_expires_min),
     }
-<<<<<<< HEAD
-    return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
-
-
-def decode_token(token: str) -> dict:
-    return jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
-=======
     return jwt.encode(payload, settings.jwt_secret.get_secret_value(), algorithm="HS256")
 
 
 def decode_token(token: str) -> dict:
     return jwt.decode(token, settings.jwt_secret.get_secret_value(), algorithms=["HS256"])
->>>>>>> origin/main
