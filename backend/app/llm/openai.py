@@ -30,15 +30,25 @@ class OpenAIProvider(LLMProvider):
             ) from exc
         return langchain_openai
 
-    def chat_model(self):
+    def chat_model_name(self, *, fallback: bool = False) -> str:
+        return self._settings.openai_chat_model
+
+    def chat_model(self, *, fallback: bool = False):
         return self._import().ChatOpenAI(
             model=self._settings.openai_chat_model,
             api_key=self._api_key(),
             temperature=self._settings.llm_temperature,
+            max_tokens=self._settings.llm_max_output_tokens,
+            timeout=self._settings.llm_request_timeout_s,
+            max_retries=0,
         )
+
+    def embedding_model_name(self) -> str:
+        return self._settings.openai_embedding_model
 
     def embeddings(self):
         return self._import().OpenAIEmbeddings(
             model=self._settings.openai_embedding_model,
             api_key=self._api_key(),
+            dimensions=self._settings.embedding_dim,
         )

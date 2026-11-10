@@ -1,0 +1,68 @@
+{
+  "_comment": "Fictional StaffID accounts for demos. Usernames are firstname.lastname (KB-000). Restarting the container restores this state.",
+  "accounts": [
+    {
+      "username": "demo.staff",
+      "display_name": "Demo Staff",
+      "employee_no": "PH-10021",
+      "mobile": "+639170000021",
+      "recovery_email": "demo.staff.personal@mail.example",
+      "privileged": false,
+      "locked": false
+    },
+    {
+      "username": "demo.agent",
+      "display_name": "Demo Agent",
+      "employee_no": "PH-10031",
+      "mobile": "+639170000031",
+      "recovery_email": "demo.agent.personal@mail.example",
+      "privileged": true,
+      "locked": false
+    },
+    {
+      "username": "demo.admin1",
+      "display_name": "Demo Admin One",
+      "employee_no": "PH-10041",
+      "mobile": "+639170000041",
+      "recovery_email": "demo.admin1.personal@mail.example",
+      "privileged": true,
+      "locked": false
+    },
+    {
+      "username": "demo.admin2",
+      "display_name": "Demo Admin Two",
+      "employee_no": "PH-10042",
+      "mobile": "+639170000042",
+      "recovery_email": "demo.admin2.personal@mail.example",
+      "privileged": true,
+      "locked": false
+    },
+    {
+      "username": "maria.santos",
+      "display_name": "Maria Santos",
+      "employee_no": "PH-10107",
+      "mobile": "+639170000107",
+      "recovery_email": "maria.santos.personal@mail.example",
+      "privileged": false,
+      "locked": true
+    },
+    {
+      "username": "paolo.reyes",
+      "display_name": "Paolo Reyes",
+      "employee_no": "PH-10055",
+      "mobile": "+639170000055",
+      "recovery_email": "paolo.reyes.personal@mail.example",
+      "privileged": true,
+      "locked": false
+    },
+    {
+      "username": "nomobile.staff",
+      "display_name": "No Mobile Staff",
+      "employee_no": "PH-10199",
+      "mobile": "",
+      "recovery_email": "nomobile.staff.personal@mail.example",
+      "privileged": false,
+      "locked": false
+    }
+  ]
+}

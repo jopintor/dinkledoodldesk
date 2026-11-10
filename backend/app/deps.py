@@ -28,7 +28,11 @@ def get_current_user(
     try:
         payload = decode_token(creds.credentials)
     except jwt.PyJWTError:
+<<<<<<< HEAD
         raise unauthorized
+=======
+        raise unauthorized from None
+>>>>>>> origin/main
     user = db.get(User, int(payload["sub"]))
     if user is None or not user.is_active:
         raise unauthorized

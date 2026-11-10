@@ -1,7 +1,8 @@
 # DinkDesk — AI-HAS Capstone Master Plan
 
 > Single source of truth for the team and for every Claude session working on this project.
-> Read this file first. Update it when a decision changes. Last updated: 2026-10-28.
+> Read this file first. Update it when a decision changes. Last updated: 2026-11-02.
+> Current status of every track lives in [PROGRESS.md](PROGRESS.md).
 
 ## 1. Course & team
 
@@ -40,7 +41,7 @@ Users/roles (RBAC): `member`, `staff`, `agent` (IT support), `admin`.
 
 | Area | Choice |
 |---|---|
-| Design | Figma (Jose will send templates) |
+| Design | Figma — [DinkDesk – UI Design (Copy)](https://www.figma.com/design/1gFwqS3GDyX581iJMlsX0R) (Arjan's final version) |
 | Task board | GitHub Projects (private repo created by Jose) |
 | Documentation | Google Docs/Drive |
 | Frontend | Next.js (React, TypeScript) |
@@ -70,29 +71,37 @@ Today is Week 13 of the syllabus. Presentation/demo is **Week 16 (Nov 16–20) o
 | 3 | Nov 16 – Nov 22 | Evaluation run & metrics, bug fixes, slides, demo script, backup demo video | Wk 16: presentation slot (possible) |
 | 4 | Nov 23 – Dec 7 | Defense, final documentation (template's 14 sections), final product submission | Wk 17 presentation (possible), Wk 18–19 final |
 
-## 5. Feature checklist (from syllabus "Project Requirements")
+## 5. Prototype scope (decided 2026-11-09 — this overrides anything larger in `/docs`)
 
-- [ ] Conversational AI chat for IT requests
-- [ ] RAG over SOPs/FAQs/policies with citations
-- [ ] ≥1 function-calling action (we plan 3: password reset, create Jira ticket, check service status)
-- [ ] FastAPI backend
-- [ ] ChromaDB vector store
-- [ ] Frontend: user chat + agent/admin dashboard with analytics
-- [ ] n8n / webhook event-driven automation
-- [ ] Human escalation on low confidence / sensitive requests; prompt-injection guardrails
-- [ ] RBAC, PII redaction, input validation, secret handling
-- [ ] Tests: normal, ambiguous, unsupported, malicious, low-confidence; metrics: accuracy, retrieval relevance, latency, automation success, ticket deflection
-- [ ] Docs: architecture, ERD/data-flow, API docs, AI/RAG workflow, setup, user manual, code comments
-- [ ] Git repo with branching, env config, Docker
-- [ ] Live demo + defense
+The instructor asked for a **working prototype**. We build the syllabus "Project Requirements" at a solid minimum and stop there. `/docs` describes a fuller design; where it goes further than this list, treat the extra parts as "future work" (mention them in the defense, don't build them).
 
-## 6. Going beyond the instructions (showcase ideas)
+**In scope (build and test these):**
+- [ ] Conversational AI chat for IT requests (Next.js chat page)
+- [ ] RAG over the knowledge base with citations (ChromaDB, Gemini)
+- [ ] **2** function-calling tools: `create_ticket` (→ Jira) and `reset_password` (mock directory + Mailpit code)
+- [ ] FastAPI backend: auth, conversations/messages, tickets
+- [ ] n8n: **1–2** workflows — WF-01 ticket → Jira, and (if time) WF-02 escalation notice
+- [ ] Guardrails: prompt-injection blocking, PII redaction, escalate low-confidence/sensitive questions to a human (shown as a ticket/escalation, no live agent takeover)
+- [ ] Security basics: RBAC (member / staff / agent / admin), input validation, secrets in `.env`
+- [ ] Frontend: login, chat, **one** admin dashboard (a few KPIs + guardrail log) and a **read-only** escalation list
+- [ ] Testing: golden-set eval (retrieval hit rate, behaviour accuracy, latency, deflection) + a small load test + unit tests in CI
+- [ ] Docs: Google Doc (14 template sections), README setup, API docs, user manual
+- [ ] Git repo, branching, `.env` config, Docker Compose
+- [ ] Live demo + defense, with a backup demo video
 
-1. **"Try to break DinkDesk" live segment** — panel types prompt-injection/PII attempts; a Guardrail Log panel shows each block in real time.
-2. **Evaluation scorecard** in the admin dashboard (faithfulness, relevance, deflection rate, p95 latency) from a 50-question golden test set.
-3. **Before/after prompt iterations** — show how prompt changes moved the metrics (also feeds the Week 15 report).
-4. **Backup demo video** in case the Gemini free tier rate-limits during the live defense; plus response caching for demo questions.
-5. **Reuse every enabling assessment** (Wk 13, 14, 15) as project deliverables so no work is wasted.
+**Cut / future work (do not build):**
+- `check_service_status` and `escalate_to_agent` as separate tools (escalation happens inside the guardrail flow)
+- n8n WF-03 approvals, WF-04 Jira status polling, WF-05, SLA reminders, transactional outbox, HMAC-signed callbacks
+- Live agent takeover, knowledge-base management page, mobile layout, Playwright E2E
+- LLM-as-judge scoring is optional (run only if Gemini quota allows)
+
+**Already built — keep, but don't extend:** mock directory, Mailpit, response cache, Locust load test.
+
+## 6. Demo extras (only if the core is done)
+
+1. **"Try to break DinkDesk" live segment** — panel types prompt-injection/PII attempts; the guardrail log on the admin dashboard shows each block.
+2. **Backup demo video** in case the Gemini free tier rate-limits during the live defense; plus response caching for demo questions.
+3. **Reuse every enabling assessment** (Wk 13, 14, 15) as project deliverables so no work is wasted.
 
 ## 7. Repo layout (planned)
 
@@ -119,7 +128,7 @@ Today is Week 13 of the syllabus. Presentation/demo is **Week 16 (Nov 16–20) o
 ## 9. Open items
 
 - Exact presentation slot (Week 16 or 17) — ask Mr. Gregana.
-- Teammates' emails/GitHub usernames for sharing the Google Doc and repo.
+- Teammates' emails for sharing the Google Doc. (GitHub done: Andre = `dremnty122`, Arjan = `sarinasavs` are repo collaborators.)
 - Project documentation Google Doc (workstream D, created 2026-10-28, not shared yet): [DinkDesk – AI-HAS Project Documentation](https://docs.google.com/document/d/1-9LpgU4tLxokY8w43LFUwOjdnqSnSjiqdxhE_A7BA54/edit). Sections 1–5, 11, 12, 14 drafted; 6–10 and 13 have highlighted placeholders waiting on `/docs` and the QA report.
-- Figma templates/file link (Jose to send).
+- Figma design file (workstream E, design finished 2026-11-05): [DinkDesk – UI Design (Copy)](https://www.figma.com/design/1gFwqS3GDyX581iJMlsX0R) is Arjan's final version, use this one for the frontend. It adds screens 02b Typing and 02c New chat. The original [DinkDesk – UI Design](https://www.figma.com/design/R0qIVGw2OPSdFTaDaCHqzs) is out of date. Pages: "Start here – Arjan", "Style guide" (variables + components), "Screens" (login, chat desktop ×2, chat mobile, agent queue, admin KPI dashboard, knowledge base). Design decisions approved by Jose 2026-10-30: cream `#F7F4EC` + dark green `#3F6136`, yellow accents only; Outfit + Plus Jakarta Sans; "StaffID" password wording; Staff & IT / Member login toggle; tagline "Soft shots for hard IT problems."; tickets show `DD-… → ITH-…`; mobile layout for chat only.
 - Jira Cloud free site — Jose creates the account.

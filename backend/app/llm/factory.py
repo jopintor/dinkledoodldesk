@@ -2,12 +2,14 @@
 
 from app.config import Settings, get_settings
 from app.llm.base import LLMProvider, LLMProviderError
+from app.llm.fake import FakeProvider
 from app.llm.gemini import GeminiProvider
 from app.llm.openai import OpenAIProvider
 
 _PROVIDERS: dict[str, type[LLMProvider]] = {
     "gemini": GeminiProvider,
     "openai": OpenAIProvider,
+    "fake": FakeProvider,
 }
 
 

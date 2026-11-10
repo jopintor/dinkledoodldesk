@@ -1,0 +1,13 @@
+# Backend
+
+## Demo logins (test values only)
+
+| Role   | Email                    | Password    |
+|--------|--------------------------|-------------|
+| member | member@picklehub.example | member123!  |
+| staff  | staff@picklehub.example  | staff123!   |
+| agent  | agent@picklehub.example  | agent123!   |
+| admin  | admin1@picklehub.example | admin123!   |
+| admin  | admin2@picklehub.example | admin456!   |
+
+Load them with `python -m app.seed` (safe to run more than once).

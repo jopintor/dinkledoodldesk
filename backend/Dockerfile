@@ -12,6 +12,8 @@ COPY pyproject.toml ./
 RUN mkdir app && touch app/__init__.py && pip install . && rm -rf app
 
 COPY app ./app
+COPY alembic.ini ./
+COPY alembic ./alembic
 
 RUN useradd --create-home --uid 1000 dinkdesk
 USER dinkdesk

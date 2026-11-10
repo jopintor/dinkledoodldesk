@@ -7,8 +7,13 @@ from app import __version__
 from app.config import get_settings
 from app.errors import register_error_handlers
 from app.llm import get_llm_provider
+<<<<<<< HEAD
 from app.ratelimit import limiter
 from app.routers import auth, services, tickets
+=======
+from app.rag.api import router as rag_router
+from app.routers import auth
+>>>>>>> origin/main
 
 settings = get_settings()
 
@@ -30,8 +35,12 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+<<<<<<< HEAD
 app.include_router(tickets.router)
 app.include_router(services.router)
+=======
+app.include_router(rag_router)
+>>>>>>> origin/main
 
 
 @app.get("/health", tags=["meta"])
