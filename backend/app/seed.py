@@ -23,6 +23,9 @@ USERS = [
     ("admin2@picklehub.example", "Demo Admin Two", "admin456!", "admin"),
 ]
 
+# Directory account used by the reset_password tool (email -> directory username).
+DIRECTORY_USERNAMES = {"staff@picklehub.example": "demo.staff"}
+
 # TODO: replace with the services listed in
 # knowledge-base/kb-025-service-status-page-guide.md
 SERVICES = [
@@ -64,6 +67,10 @@ def main():
             # Upgrade any old (non-argon2) hash from the earlier seed.
             if not user.password_hash.startswith("$argon2"):
                 user.password_hash = hash_password(password)
+
+            username = DIRECTORY_USERNAMES.get(email)
+            if username:
+                user.directory_username = username
 
         for service in SERVICES:
             get_or_create(
