@@ -2,12 +2,11 @@
 
 from uuid import uuid4
 
-from app.tools.n8n import sync_ticket_to_jira  # JIRA
-from app.tools.schemas import TOOLS
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.models import Role, Ticket, ToolCall, User
+from app.tools.schemas import TOOLS
 
 # Members may only raise these kinds of tickets, at P3 or lower priority.
 MEMBER_CATEGORIES = {"member_app_booking", "network", "other"}
@@ -116,7 +115,6 @@ def run_create_ticket(db: Session, user: User, arguments: dict) -> dict:
     db.add(ticket)
     db.flush()
     ticket.ticket_number = ticket_number(ticket.id)
-    sync_ticket_to_jira(ticket)  # JIRA
     return {
         "ticket_number": ticket.ticket_number,
         "jira_key": ticket.jira_key,
