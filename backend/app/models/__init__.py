@@ -6,6 +6,7 @@ from app.models.message import Message
 from app.models.role import Role
 from app.models.service_status import ServiceStatus
 from app.models.ticket import Ticket
+from app.models.tool_call import ToolCall
 from app.models.user import User
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "Role",
     "ServiceStatus",
     "Ticket",
+    "ToolCall",
     "User",
 ]
