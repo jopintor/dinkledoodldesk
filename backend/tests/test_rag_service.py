@@ -337,3 +337,23 @@ def test_asks_for_action(text, expected):
     from app.ai import routing
 
     assert routing.asks_for_action(text) is expected
+
+
+def test_gemini_down_still_offers_the_card_for_an_explicit_request(settings):
+    gw = StubGateway(LLMUnavailable("503"))
+    answer = service(settings, StubRetriever(0.86, "high"), gw).answer(
+        "The printer at Bacoor isn't working, please create a ticket", STAFF
+    )
+    assert answer.answer_mode == "degraded"
+    assert answer.content == templates.DEGRADED_TOOL_OFFER
+    assert answer.tool_requests[0]["name"] == "create_ticket"
+    assert answer.tool_requests[0]["args"]["club_code"] == "BAC"
+
+
+def test_gemini_down_without_a_request_is_the_usual_degraded_answer(settings):
+    gw = StubGateway(LLMUnavailable("503"))
+    answer = service(settings, StubRetriever(0.86, "high"), gw).answer(
+        "The printer at Bacoor is jammed", STAFF
+    )
+    assert answer.content.startswith(templates.DEGRADED_INTRO)
+    assert answer.tool_requests == []

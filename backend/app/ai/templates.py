@@ -60,3 +60,9 @@ NOT_INDEXED = (
 
 # The model asked for a tool but wrote no text; the action card below the message does the rest.
 TOOL_OFFER = "I can do that for you. Check the details below and confirm when you're ready."
+
+# Degraded mode, but the user plainly asked for a ticket or a password reset.
+DEGRADED_TOOL_OFFER = (
+    "The AI assistant is busy right now, but I can still do this for you. Check the details "
+    "below and confirm."
+)

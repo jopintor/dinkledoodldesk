@@ -23,7 +23,7 @@ from typing import Literal
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langchain_core.utils.function_calling import convert_to_openai_tool
 
-from app.ai import prompts, routing, templates
+from app.ai import fallback, prompts, routing, templates
 from app.config import Settings, get_settings
 from app.guardrails import injection
 from app.guardrails.events import (
@@ -297,7 +297,14 @@ class RagService:
             )
         except LLMUnavailable as exc:
             log.warning("serving degraded answer: %s", exc)
-            return self._degraded(retrieval, forced, base)
+            degraded = self._degraded(retrieval, forced, base)
+            # An explicit "make a ticket" / "reset my password" still gets its card.
+            requests = fallback.tool_requests(message, caller.role, tool_names)
+            if requests:
+                degraded.content = templates.DEGRADED_TOOL_OFFER
+                degraded.citations = []
+                degraded.tool_requests = requests
+            return degraded
 
         text = generation.text.strip()
         checked = injection.check_output(text, self.canary, self.redactor)
