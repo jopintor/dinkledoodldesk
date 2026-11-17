@@ -35,6 +35,7 @@ from app.llm import LLMGateway, LLMUnavailable, get_llm_provider
 from app.rag.cache import ResponseCache, cache_key
 from app.rag.retriever import RetrievalResult, Retriever, ScoredChunk
 from app.rag.store import KBStore, collection_name, make_client
+from app.tools.schemas import TOOLS
 
 log = logging.getLogger(__name__)
 
@@ -44,6 +45,15 @@ _FOLLOW_UP = re.compile(r"^\s*(it|that|this|same|still)\b", re.I)
 HISTORY_TURNS = 6
 DEGRADED_SOURCES = 3
 OFFER_HELP = ["create_ticket", "escalate_to_agent"]
+
+# Tools bound to the model per role (function calling). The executor checks the rules again
+# when it saves the proposal; agents and admins never get reset_password (privileged accounts).
+TOOLS_BY_ROLE: dict[str, tuple[str, ...]] = {
+    "member": ("create_ticket",),
+    "staff": ("create_ticket", "reset_password"),
+    "agent": ("create_ticket",),
+    "admin": ("create_ticket",),
+}
 
 # Escalation reason per always-escalate intent; stored on the escalation/ticket the
 # conversation endpoint creates (prototype scope: no separate escalation tool).
@@ -99,6 +109,8 @@ class RagAnswer:
     escalation_reason: str | None = None
     # Capability limiting: False on a flagged turn, so the tool executor offers no tools.
     tools_allowed: bool = True
+    # Function calls the model asked for: [{"name": ..., "args": {...}}]. Proposed, never run.
+    tool_requests: list[dict] = field(default_factory=list)
     # Input guardrail outcome shown to the user: {"type", "action", "rule_ids", "score"}.
     guardrail: dict | None = None
     model: str | None = None
@@ -195,8 +207,16 @@ class RagService:
             result = self._refusal(verdict)
         else:
             history_list = list(history)[-HISTORY_TURNS:]
-            result = self._answer(verdict.text, caller, history_list, cacheable and not pii_types)
+            result = self._answer(
+                verdict.text,
+                caller,
+                history_list,
+                cacheable and not pii_types,
+                tools_allowed=verdict.tools_allowed,
+            )
             result.tools_allowed = verdict.tools_allowed
+            if not verdict.tools_allowed:
+                result.tool_requests = []
         result.guardrail = guardrail
         if result.action == "escalate" and result.escalation_reason != "output_blocked":
             self._record_escalation(caller, result)
@@ -204,7 +224,13 @@ class RagService:
         return result
 
     def _answer(
-        self, message: str, caller: Caller, history: list[HistoryTurn], cacheable: bool
+        self,
+        message: str,
+        caller: Caller,
+        history: list[HistoryTurn],
+        cacheable: bool,
+        *,
+        tools_allowed: bool = True,
     ) -> RagAnswer:
         intent = routing.rule_intent(message)
         if intent == routing.AMBIGUOUS and history:
@@ -249,8 +275,12 @@ class RagService:
         if retrieval.band == "low":
             return self._low_confidence(retrieval, forced, base)
 
+        tool_names = TOOLS_BY_ROLE.get(caller.role, ()) if tools_allowed else ()
         try:
-            generation = self.gateway.generate(self._messages(message, caller, history, retrieval))
+            generation = self.gateway.generate(
+                self._messages(message, caller, history, retrieval, tool_names),
+                tools=[TOOLS[name] for name in tool_names],
+            )
         except LLMUnavailable as exc:
             log.warning("serving degraded answer: %s", exc)
             return self._degraded(retrieval, forced, base)
@@ -269,7 +299,24 @@ class RagService:
                          rule_ids=checked.pii_types)  # fmt: skip
             text = checked.text
             key = None  # never cache an answer the model had to be corrected on
-        if text.startswith(prompts.NO_ANSWER):
+        tool_requests = [
+            {"name": r.name, "args": r.args}
+            for r in generation.tool_requests
+            if r.name in tool_names
+        ]
+        if tool_requests:
+            key = None  # an action is personal to this turn; never replay it from the cache
+        if not text or text.startswith(prompts.NO_ANSWER):
+            if tool_requests:
+                return RagAnswer(
+                    content=templates.TOOL_OFFER,
+                    answer_mode="generated",
+                    action="escalate" if forced else "answer",
+                    confidence=round(retrieval.retrieval_confidence, 4),
+                    escalate=forced,
+                    escalation_reason=ESCALATION_REASONS.get(intent) if forced else None,
+                    tool_requests=tool_requests, model=generation.model, **base,
+                )  # fmt: skip
             return self._low_confidence(retrieval, forced, base, model=generation.model)
 
         clean, used, invalid = apply_citations(text, len(retrieval.chunks))
@@ -278,7 +325,7 @@ class RagService:
             self._record(caller, "output", "invalid_citation", "flagged", "regex",
                          rule_ids=("OUT-CITATION",))  # fmt: skip
         confidence = retrieval.retrieval_confidence * (1.0 if used else 0.5)
-        if confidence < self.settings.rag_medium_threshold:
+        if confidence < self.settings.rag_medium_threshold and not tool_requests:
             return self._low_confidence(retrieval, forced, base, model=generation.model)
 
         answer = RagAnswer(
@@ -290,6 +337,7 @@ class RagService:
             suggested_actions=self._suggestions(retrieval.band, forced),
             escalate=forced,
             escalation_reason=ESCALATION_REASONS.get(intent) if forced else None,
+            tool_requests=tool_requests,
             model=generation.model,
             **base,
         )
@@ -305,6 +353,7 @@ class RagService:
         caller: Caller,
         history: list[HistoryTurn],
         retrieval: RetrievalResult,
+        tool_names: Sequence[str] = (),
     ) -> list[BaseMessage]:
         system = prompts.SYSTEM_PROMPT_V1.format(
             first_name=caller.first_name,
@@ -313,7 +362,7 @@ class RagService:
             job_title=caller.job_title,
             now_pht=datetime.now(_PHT).strftime("%A %d %B %Y, %I:%M %p"),
             confidence_note=prompts.MEDIUM_CONFIDENCE_NOTE if retrieval.band == "medium" else "",
-            allowed_tools=prompts.NO_TOOLS,
+            allowed_tools=", ".join(tool_names) or prompts.NO_TOOLS,
             canary=self.canary,
         )
         # User, history and KB text can't open or close our <context>/<history>/<user_message>

@@ -30,6 +30,11 @@ def error_response(
 
 
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    # Unknown route (Starlette's default 404/405): keep FastAPI's plain body. The frontend
+    # reads `{"detail": "Not Found"}` / 405 as "not built yet" and falls back to its mock API.
+    if (exc.status_code, exc.detail) in ((404, "Not Found"), (405, "Method Not Allowed")):
+        headers = getattr(exc, "headers", None)
+        return JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=headers)
     return error_response(
         exc.status_code,
         CODES.get(exc.status_code, "error"),

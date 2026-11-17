@@ -84,9 +84,9 @@ def test_prompt_is_personalised_from_the_signed_in_user(client_as, service, monk
     prompts = []
     real_generate = service.gateway.generate
 
-    def spy(messages):
+    def spy(messages, tools=()):
         prompts.append(messages[0].content)
-        return real_generate(messages)
+        return real_generate(messages, tools)
 
     monkeypatch.setattr(service.gateway, "generate", spy)
     client_as("staff").post(ASK, json={"content": "DinkPOS PIN locked after wrong tries"})
@@ -131,3 +131,40 @@ def test_kb_search_is_for_agents_and_admins(client_as, role, status):
         results = resp.json()["results"]
         assert results and all(r["doc_id"] != "KB-011" for r in results)
         assert {"chunk_id", "vector_score", "bm25_score", "rrf_score", "preview"} <= set(results[0])
+
+
+def test_a_function_call_from_the_model_comes_back_as_a_card_to_confirm(
+    client_as, service, monkeypatch
+):
+    from langchain_core.messages import AIMessage
+
+    from app.rag import api as rag_api
+    from app.tools.executor import ToolRefused
+
+    args = {"system": "staffid", "reason": "forgot_password"}
+    call = {"name": "reset_password", "args": args, "id": "fc-1", "type": "tool_call"}
+    service.gateway._chat_models[False].responses = [AIMessage(content="", tool_calls=[call])]
+    proposed = []
+
+    def fake_propose(db, user, name, arguments):
+        proposed.append((user.id, name, arguments))
+        return {"id": 41, "tool_name": name, "status": "awaiting_confirmation",
+                "arguments": arguments, "confirm_text": "Reset?"}  # fmt: skip
+
+    monkeypatch.setattr(rag_api, "propose", fake_propose)
+    body = client_as("staff").post(ASK, json={"content": "Please reset my StaffID password"}).json()
+    assert proposed == [(7, "reset_password", args)]
+    assert body["tool_calls"][0]["id"] == 41
+    assert body["tool_calls"][0]["status"] == "awaiting_confirmation"
+    assert service.gateway._chat_models[False].bound_tools  # tools were bound for staff
+
+    def refuse(db, user, name, arguments):
+        raise ToolRefused("Members can't raise that kind of ticket.")
+
+    monkeypatch.setattr(rag_api, "propose", refuse)
+    service.gateway._chat_models[False].responses = [AIMessage(content="", tool_calls=[call])]
+    body = client_as("staff").post(ASK, json={"content": "Please reset my StaffID password"}).json()
+    assert body["tool_calls"] == [
+        {"id": None, "tool_name": "reset_password", "status": "failed",
+         "message": "Members can't raise that kind of ticket."}
+    ]  # fmt: skip

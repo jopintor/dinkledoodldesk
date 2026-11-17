@@ -23,8 +23,9 @@ USERS = [
     ("admin2@picklehub.example", "Demo Admin Two", "admin456!", "admin"),
 ]
 
-# Directory account used by the reset_password tool (email -> directory username).
-DIRECTORY_USERNAMES = {"staff@picklehub.example": "demo.staff"}
+# Directory account used by the reset_password tool:
+# email -> (directory username, employee no.), matching mock-directory/app/seed.json.
+DIRECTORY_ACCOUNTS = {"staff@picklehub.example": ("demo.staff", "PH-10021")}
 
 # Same names as the chat side panel (frontend/src/lib/mock/data.ts) and KB-025.
 SERVICES = [
@@ -70,9 +71,9 @@ def main():
             if not user.password_hash.startswith("$argon2"):
                 user.password_hash = hash_password(password)
 
-            username = DIRECTORY_USERNAMES.get(email)
-            if username:
-                user.directory_username = username
+            account = DIRECTORY_ACCOUNTS.get(email)
+            if account:
+                user.directory_username, user.employee_no = account
 
         for old in session.scalars(
             select(ServiceStatus).where(ServiceStatus.service_name.not_in(SERVICES))

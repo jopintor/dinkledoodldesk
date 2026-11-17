@@ -58,3 +58,23 @@ def indexed_kb():
 def retriever(indexed_kb) -> Retriever:
     settings, store, gateway = indexed_kb
     return Retriever(store, gateway.embed_query, settings)
+
+
+@pytest.fixture(autouse=True)
+def no_real_n8n(monkeypatch):
+    """Tickets never reach a real n8n in tests: the webhook answers 503 unless a test says so."""
+    import httpx
+
+    from app.tools import jira_sync
+
+    monkeypatch.setattr(
+        jira_sync, "transport", httpx.MockTransport(lambda request: httpx.Response(503))
+    )
+
+
+@pytest.fixture(autouse=True)
+def fresh_rate_limits():
+    """Rate-limit counters are process-wide; every test starts from zero."""
+    from app.ratelimit import limiter
+
+    limiter.reset()

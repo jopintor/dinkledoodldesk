@@ -22,7 +22,7 @@ import threading
 import time
 from collections import OrderedDict
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import TypeVar
 from zoneinfo import ZoneInfo
@@ -51,9 +51,18 @@ class LLMUnavailable(RuntimeError):
 
 
 @dataclass(frozen=True)
+class ToolRequest:
+    """A function call the model asked for. Nothing runs until the user confirms it."""
+
+    name: str
+    args: dict
+
+
+@dataclass(frozen=True)
 class Generation:
     text: str
     model: str
+    tool_requests: tuple[ToolRequest, ...] = field(default=())
 
 
 def normalise(vector: Sequence[float]) -> list[float]:
@@ -240,7 +249,8 @@ class LLMGateway:
 
     # ---- chat -----------------------------------------------------------------
 
-    def generate(self, messages: list[BaseMessage]) -> Generation:
+    def generate(self, messages: list[BaseMessage], tools: Sequence[type] = ()) -> Generation:
+        """One chat call. `tools` (Pydantic models) are bound for function calling."""
         s = self._settings
         deadline = self._clock() + s.llm_request_timeout_s
         if not self.breaker.allow():
@@ -261,14 +271,14 @@ class LLMGateway:
             if not self.chat_limiter.acquire(min(s.llm_queue_max_wait_s, deadline - self._clock())):
                 raise LLMUnavailable("LLM rate limit queue is full")
             try:
-                gen = self._retrying(lambda: self._invoke(messages, use_fallback), deadline)
+                gen = self._retrying(lambda: self._invoke(messages, use_fallback, tools), deadline)
             except _CallFailed as exc:
                 if use_fallback or not has_fallback or exc.kind == "fatal":
                     self.breaker.failure()
                     raise LLMUnavailable(f"LLM call failed ({exc.kind})") from exc
                 log.warning("primary model failed (%s); trying %s once", exc.kind, fallback)
                 try:
-                    gen = self._retrying(lambda: self._invoke(messages, True), deadline, 1)
+                    gen = self._retrying(lambda: self._invoke(messages, True, tools), deadline, 1)
                 except _CallFailed as fb_exc:
                     self.breaker.failure()
                     raise LLMUnavailable(f"fallback model failed ({fb_exc.kind})") from fb_exc
@@ -282,12 +292,20 @@ class LLMGateway:
             self._chat_models[fallback] = self.provider.chat_model(fallback=fallback)
         return self._chat_models[fallback]
 
-    def _invoke(self, messages: list[BaseMessage], fallback: bool) -> Generation:
+    def _invoke(
+        self, messages: list[BaseMessage], fallback: bool, tools: Sequence[type] = ()
+    ) -> Generation:
         name = self.provider.chat_model_name(fallback=fallback)
         model = self._chat(fallback)
+        if tools:
+            model = model.bind_tools(list(tools))
         self.quota.record(name)
         reply = model.invoke(messages)
-        return Generation(text=message_text(reply), model=name)
+        requests = tuple(
+            ToolRequest(name=call["name"], args=dict(call.get("args") or {}))
+            for call in getattr(reply, "tool_calls", None) or []
+        )
+        return Generation(text=message_text(reply), model=name, tool_requests=requests)
 
     # ---- embeddings -----------------------------------------------------------
 

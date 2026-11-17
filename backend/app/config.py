@@ -83,6 +83,8 @@ class Settings(BaseSettings):
     jira_email: str = ""
     jira_api_token: SecretStr = SecretStr("")
     jira_project_key: str = "ITH"
+    # Issue type n8n WF-01 creates in that project (name as Jira shows it).
+    jira_issue_type: str = "Task"
 
     # Auth
     jwt_secret: SecretStr = SecretStr("dev-only-secret-change-me")

@@ -1,0 +1,116 @@
+{
+  "name": "WF-01 Ticket to Jira",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ticket-created",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "5b1f0c1e-0001-4d6a-9a01-000000000001",
+      "name": "Webhook: ticket.created",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "d1d5a7f2-3c4e-4b8a-9f10-7c2a0e5b9a01"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Turns the DinkDesk ticket.created payload into a Jira create-issue body (REST API v3).\nconst body = $json.body;\nconst t = body.data;\nconst jira = body.jira;\nconst para = (text) => ({ type: 'paragraph', content: text ? [{ type: 'text', text: String(text) }] : [] });\nconst who = t.requester || {};\nconst lines = [\n  t.description,\n  `Priority: ${t.priority} | Category: ${t.category} | System: ${t.affected_system} | Branch: ${t.club_code || 'not set'}`,\n  `Requested by ${who.display_name || 'unknown'} (${who.role || 'unknown role'}, ${who.email || 'no email'}) through DinkDesk ticket ${t.ticket_number}.`,\n];\nreturn [{\n  json: {\n    ticket_number: t.ticket_number,\n    base_url: String(jira.base_url || '').replace(/\\/$/, ''),\n    jira_body: {\n      fields: {\n        project: { key: jira.project_key },\n        issuetype: { name: jira.issue_type },\n        summary: `[${t.ticket_number}] ${t.summary}`.slice(0, 250),\n        description: { type: 'doc', version: 1, content: lines.map(para) },\n      },\n    },\n  },\n}];\n"
+      },
+      "id": "5b1f0c1e-0002-4d6a-9a01-000000000002",
+      "name": "Build Jira issue",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.base_url }}/rest/api/3/issue",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.jira_body) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "5b1f0c1e-0003-4d6a-9a01-000000000003",
+      "name": "Jira: create issue in ITH",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ jira_key: $json.key || null, ticket_number: $('Build Jira issue').item.json.ticket_number }) }}",
+        "options": {}
+      },
+      "id": "5b1f0c1e-0004-4d6a-9a01-000000000004",
+      "name": "Respond with Jira key",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook: ticket.created": {
+      "main": [
+        [
+          {
+            "node": "Build Jira issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Jira issue": {
+      "main": [
+        [
+          {
+            "node": "Jira: create issue in ITH",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira: create issue in ITH": {
+      "main": [
+        [
+          {
+            "node": "Respond with Jira key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

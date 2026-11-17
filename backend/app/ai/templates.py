@@ -57,3 +57,6 @@ NOT_INDEXED = (
     "My knowledge base isn't available right now, so I can't look this up. I can create a "
     "ticket for the IT Service Desk or connect you to an IT agent."
 )
+
+# The model asked for a tool but wrote no text; the action card below the message does the rest.
+TOOL_OFFER = "I can do that for you. Check the details below and confirm when you're ready."
