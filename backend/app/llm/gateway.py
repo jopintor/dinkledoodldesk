@@ -249,8 +249,8 @@ class LLMGateway:
 
     # ---- chat -----------------------------------------------------------------
 
-    def generate(self, messages: list[BaseMessage], tools: Sequence[type] = ()) -> Generation:
-        """One chat call. `tools` (Pydantic models) are bound for function calling."""
+    def generate(self, messages: list[BaseMessage], tools: Sequence = ()) -> Generation:
+        """One chat call. `tools` (function definitions) are bound for function calling."""
         s = self._settings
         deadline = self._clock() + s.llm_request_timeout_s
         if not self.breaker.allow():
@@ -293,7 +293,7 @@ class LLMGateway:
         return self._chat_models[fallback]
 
     def _invoke(
-        self, messages: list[BaseMessage], fallback: bool, tools: Sequence[type] = ()
+        self, messages: list[BaseMessage], fallback: bool, tools: Sequence = ()
     ) -> Generation:
         name = self.provider.chat_model_name(fallback=fallback)
         model = self._chat(fallback)

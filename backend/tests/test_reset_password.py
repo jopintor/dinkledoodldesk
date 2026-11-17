@@ -86,6 +86,13 @@ def test_staff_without_a_directory_account_is_refused(db, users):
         propose(db, users["staff_no_dir"], "reset_password", ARGS)
 
 
+def test_model_casing_is_normalised(db, users):
+    out = propose(
+        db, users["staff"], "reset_password", {"system": "StaffID", "reason": "Forgot Password"}
+    )
+    assert out["arguments"] == {"system": "staffid", "reason": "forgot_password"}
+
+
 def test_other_systems_are_refused(db, users):
     with pytest.raises(ToolRefused):
         propose(db, users["staff"], "reset_password", {**ARGS, "system": "hubmail"})
