@@ -5,9 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
 from app.config import get_settings
+from app.errors import register_error_handlers
 from app.llm import get_llm_provider
 from app.rag.api import router as rag_router
-from app.routers import auth
+from app.ratelimit import limiter
+from app.routers import admin, auth, services, tickets, tool_calls
 
 settings = get_settings()
 
@@ -16,6 +18,9 @@ app = FastAPI(
     version=__version__,
     description="AI IT helpdesk for PickleHub Clubs (AI-HAS capstone).",
 )
+
+app.state.limiter = limiter
+register_error_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,
@@ -26,6 +31,10 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(tickets.router)
+app.include_router(services.router)
+app.include_router(tool_calls.router)
+app.include_router(admin.router)  # /escalations; admin.metrics_router stays off for now
 app.include_router(rag_router)
 
 
