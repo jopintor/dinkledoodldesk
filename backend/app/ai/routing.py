@@ -102,6 +102,18 @@ _CLARIFY_OPTIONS: list[tuple[re.Pattern[str], str]] = [
 ]
 
 
+_ACTION_REQUEST = re.compile(
+    r"\b(create|make|open|file|raise|log|submit|send)\b[^.?!]{0,30}\bticket\b|"
+    r"\breset\b[^.?!]{0,30}\bpassword\b|\bpassword\b[^.?!]{0,30}\breset\b",
+    re.I,
+)
+
+
+def asks_for_action(message: str) -> bool:
+    """The user explicitly asks for a ticket or a password reset (one of the two tools)."""
+    return bool(_ACTION_REQUEST.search(message))
+
+
 def rule_intent(message: str) -> str | None:
     """First matching override intent, `ambiguous`, or None (let retrieval decide)."""
     for intent, pattern in _RULES:

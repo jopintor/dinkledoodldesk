@@ -58,7 +58,7 @@ class StubGateway:
 
     def generate(self, messages, tools=()):
         self.prompts.append(messages)
-        self.tools.append([t.__name__ for t in tools])
+        self.tools.append([t["function"]["name"] for t in tools])
         reply = self.replies.pop(0)
         if isinstance(reply, BaseException):
             raise reply
@@ -252,10 +252,10 @@ def tool_reply(name, args, text=""):
 @pytest.mark.parametrize(
     ("role", "tools"),
     [
-        ("staff", ["CreateTicket", "ResetPassword"]),
-        ("member", ["CreateTicket"]),
-        ("agent", ["CreateTicket"]),
-        ("admin", ["CreateTicket"]),
+        ("staff", ["create_ticket", "reset_password"]),
+        ("member", ["create_ticket"]),
+        ("agent", ["create_ticket"]),
+        ("admin", ["create_ticket"]),
     ],
 )
 def test_tools_are_bound_by_role_and_named_in_the_prompt(settings, role, tools):
@@ -301,4 +301,59 @@ def test_no_tools_on_a_flagged_turn(settings):
     if answer.tools_allowed:  # this message was not flagged; nothing to check
         pytest.skip("message not flagged by the injection heuristics")
     assert gw.tools == [] or gw.tools[0] == []
+    assert answer.tool_requests == []
+
+
+def test_an_explicit_ticket_request_reaches_the_model_even_in_the_low_band(settings):
+    gw = StubGateway(tool_reply("create_ticket", TICKET_ARGS, "NO_ANSWER"))
+    answer = service(settings, StubRetriever(0.2, "low"), gw).answer(
+        "The terminal at Imus shows an error. Please create a ticket for IT.", STAFF
+    )
+    assert gw.tools == [["create_ticket", "reset_password"]]
+    assert answer.content == templates.TOOL_OFFER
+    assert answer.tool_requests[0]["name"] == "create_ticket"
+
+
+def test_other_low_band_questions_still_skip_the_model(settings):
+    gw = StubGateway()
+    answer = service(settings, StubRetriever(0.2, "low"), gw).answer(
+        "Which court surface is best for pickleball tournaments?", STAFF
+    )
+    assert gw.prompts == [] and answer.tool_requests == []
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("Please create a ticket for IT", True),
+        ("can you open a support ticket for me", True),
+        ("I forgot my StaffID password, please reset it", True),
+        ("please reset my StaffID password", True),
+        ("password reset please", True),
+        ("How do tickets work?", False),
+    ],
+)
+def test_asks_for_action(text, expected):
+    from app.ai import routing
+
+    assert routing.asks_for_action(text) is expected
+
+
+def test_gemini_down_still_offers_the_card_for_an_explicit_request(settings):
+    gw = StubGateway(LLMUnavailable("503"))
+    answer = service(settings, StubRetriever(0.86, "high"), gw).answer(
+        "The printer at Bacoor isn't working, please create a ticket", STAFF
+    )
+    assert answer.answer_mode == "degraded"
+    assert answer.content == templates.DEGRADED_TOOL_OFFER
+    assert answer.tool_requests[0]["name"] == "create_ticket"
+    assert answer.tool_requests[0]["args"]["club_code"] == "BAC"
+
+
+def test_gemini_down_without_a_request_is_the_usual_degraded_answer(settings):
+    gw = StubGateway(LLMUnavailable("503"))
+    answer = service(settings, StubRetriever(0.86, "high"), gw).answer(
+        "The printer at Bacoor is jammed", STAFF
+    )
+    assert answer.content.startswith(templates.DEGRADED_INTRO)
     assert answer.tool_requests == []

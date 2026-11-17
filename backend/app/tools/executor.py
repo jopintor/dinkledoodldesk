@@ -57,6 +57,22 @@ def _check_reset_password(role: str | None, user: User) -> None:
         raise ToolRefused("I can't find a staff directory account for you. Please contact IT.")
 
 
+# The model sometimes writes enum values in another case ("StaffID", "p2", "Pos Payments").
+_LOWER_FIELDS = ("system", "reason", "category", "affected_system")
+_UPPER_FIELDS = ("priority", "club_code")
+
+
+def normalise_arguments(arguments: dict) -> dict:
+    out = dict(arguments)
+    for key in _LOWER_FIELDS:
+        if isinstance(out.get(key), str):
+            out[key] = out[key].strip().lower().replace(" ", "_").replace("-", "_")
+    for key in _UPPER_FIELDS:
+        if isinstance(out.get(key), str):
+            out[key] = out[key].strip().upper()
+    return out
+
+
 def propose(db: Session, user: User, tool_name: str, arguments: dict) -> dict:
     """Validate with TOOLS, check role rules, save a tool_calls row as
     'awaiting_confirmation', and return the ToolCall JSON.
@@ -68,7 +84,7 @@ def propose(db: Session, user: User, tool_name: str, arguments: dict) -> dict:
         raise ToolRefused("I can't do that action.")
 
     try:
-        parsed = schema(**arguments)
+        parsed = schema(**normalise_arguments(arguments))
     except ValidationError as exc:
         raise ToolRefused("Some of those details aren't valid for this action.") from exc
 

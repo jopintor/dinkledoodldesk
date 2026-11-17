@@ -21,8 +21,9 @@ from functools import lru_cache
 from typing import Literal
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.utils.function_calling import convert_to_openai_tool
 
-from app.ai import prompts, routing, templates
+from app.ai import fallback, prompts, routing, templates
 from app.config import Settings, get_settings
 from app.guardrails import injection
 from app.guardrails.events import (
@@ -45,6 +46,18 @@ _FOLLOW_UP = re.compile(r"^\s*(it|that|this|same|still)\b", re.I)
 HISTORY_TURNS = 6
 DEGRADED_SOURCES = 3
 OFFER_HELP = ["create_ticket", "escalate_to_agent"]
+
+
+def tool_definitions(names: Sequence[str]) -> list[dict]:
+    """Function declarations named like the prompt says (`create_ticket`), not after the
+    Pydantic class (`CreateTicket`), which is what Gemini would otherwise call them."""
+    out = []
+    for name in names:
+        definition = convert_to_openai_tool(TOOLS[name])
+        definition["function"]["name"] = name
+        out.append(definition)
+    return out
+
 
 # Tools bound to the model per role (function calling). The executor checks the rules again
 # when it saves the proposal; agents and admins never get reset_password (privileged accounts).
@@ -272,18 +285,26 @@ class RagService:
             "kb_version": kb_version,
             "retrieved_chunk_ids": [c.chunk.chunk_id for c in retrieval.chunks],
         }
-        if retrieval.band == "low":
-            return self._low_confidence(retrieval, forced, base)
-
         tool_names = TOOLS_BY_ROLE.get(caller.role, ()) if tools_allowed else ()
+        # A clear "make a ticket" / "reset my password" still reaches the model (with its
+        # tools) when no guide matches; anything else in the low band skips the LLM call.
+        if retrieval.band == "low" and not (tool_names and routing.asks_for_action(message)):
+            return self._low_confidence(retrieval, forced, base)
         try:
             generation = self.gateway.generate(
                 self._messages(message, caller, history, retrieval, tool_names),
-                tools=[TOOLS[name] for name in tool_names],
+                tools=tool_definitions(tool_names),
             )
         except LLMUnavailable as exc:
             log.warning("serving degraded answer: %s", exc)
-            return self._degraded(retrieval, forced, base)
+            degraded = self._degraded(retrieval, forced, base)
+            # An explicit "make a ticket" / "reset my password" still gets its card.
+            requests = fallback.tool_requests(message, caller.role, tool_names)
+            if requests:
+                degraded.content = templates.DEGRADED_TOOL_OFFER
+                degraded.citations = []
+                degraded.tool_requests = requests
+            return degraded
 
         text = generation.text.strip()
         checked = injection.check_output(text, self.canary, self.redactor)
