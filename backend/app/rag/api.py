@@ -30,6 +30,7 @@ from app.guardrails.injection import load_pii_redactor
 from app.models import Club, Role, User
 from app.rag.kb import ROLES
 from app.rag.service import Caller, HistoryTurn, RagService, get_rag_service
+from app.tools.executor import ToolRefused, propose
 
 router = APIRouter(prefix="/api/v1", tags=["rag"])
 
@@ -89,15 +90,35 @@ class SearchRequest(BaseModel):
     k: int = Field(default=5, ge=1, le=5)
 
 
+def propose_tool_calls(db: Session, user: User, requests: list[dict]) -> list[dict]:
+    """Save each function call the model asked for as a proposal the user must confirm.
+
+    A refused call (role rules, bad arguments) comes back as `failed` with a message the
+    chat shows instead of a confirmation card.
+    """
+    out = []
+    for request in requests:
+        try:
+            out.append(propose(db, user, request["name"], request["args"]))
+        except ToolRefused as exc:
+            out.append(
+                {"id": None, "tool_name": request["name"], "status": "failed", "message": str(exc)}
+            )
+    return out
+
+
 @router.post("/rag/ask")
 def ask(
     body: AskRequest,
     caller: Caller = Depends(get_caller),
+    user: User = Depends(require("chat:use")),
+    db: Session = Depends(get_db),
     service: RagService = Depends(get_rag_service),
 ) -> dict:
     content, pii_types = redact_input(body.content)
     history = [HistoryTurn(h.role, redact_input(h.content)[0]) for h in body.history]
     answer = service.answer(content, caller, history, pii_types=pii_types)
+    tool_calls = propose_tool_calls(db, user, answer.tool_requests) if answer.tools_allowed else []
     return {
         "user_message": {
             "content": content,
@@ -116,7 +137,7 @@ def ask(
             "prompt_version": answer.prompt_version,
             "latency_ms": answer.latency_ms,
         },
-        "tool_calls": [],
+        "tool_calls": tool_calls,
         "conversation_status": "active",
         "suggested_actions": answer.suggested_actions,
         "escalation_required": answer.escalate,

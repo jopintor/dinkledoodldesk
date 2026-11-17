@@ -5,7 +5,8 @@ cosine similarity, which is enough to exercise retrieval end to end, but it is n
 semantic model. Never compare its hit rates with Gemini's.
 
 `FakeChatModel` answers from the first `<context>` source with a `[1]` citation, or
-returns `NO_ANSWER` when the prompt has no context. Tests can script replies instead.
+returns `NO_ANSWER` when the prompt has no context. Tests can script replies instead
+(a string, or an `AIMessage` with `tool_calls` to script a function call).
 """
 
 import hashlib
@@ -48,15 +49,23 @@ class HashEmbeddings(Embeddings):
 
 class FakeChatModel(BaseChatModel):
     model_name: str = "fake-chat"
-    responses: list[str] = []
+    responses: list[str | AIMessage] = []
     calls: int = 0
+    bound_tools: list = []
 
     @property
     def _llm_type(self) -> str:
         return "fake"
 
+    def bind_tools(self, tools, **kwargs):
+        """Records the tools; the fake never calls one unless a test scripts it."""
+        self.bound_tools = list(tools)
+        return self
+
     def _generate(self, messages: list[BaseMessage], stop=None, run_manager=None, **kwargs):
         self.calls += 1
+        if self.responses and isinstance(self.responses[0], AIMessage):
+            return ChatResult(generations=[ChatGeneration(message=self.responses.pop(0))])
         if self.responses:
             text = self.responses.pop(0)
         else:

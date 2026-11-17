@@ -91,11 +91,12 @@ def test_propose_confirm_creates_a_ticket_that_the_list_returns(db, users, clien
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "succeeded"
-    assert body["message"] == "Ticket DD-000001 created."
+    assert body["message"].startswith("Ticket DD-000001 created.")
+    # n8n is down in tests (conftest), so the ticket exists but is not in Jira yet.
     assert body["result"] == {
         "ticket_number": "DD-000001",
         "jira_key": None,
-        "jira_sync_status": "pending",
+        "jira_sync_status": "failed",
     }
 
     items = client.get("/api/v1/tickets").json()
@@ -193,3 +194,32 @@ def test_members_see_their_own_tickets_and_agents_see_all(db, users, client_as):
     assert len(client_as("alice").get("/api/v1/tickets").json()["items"]) == 1
     assert len(client_as("bob").get("/api/v1/tickets").json()["items"]) == 1
     assert len(client_as("carol").get("/api/v1/tickets").json()["items"]) == 2
+
+
+def test_confirm_sends_the_ticket_to_n8n_and_saves_the_jira_key(db, users, client_as, monkeypatch):
+    import httpx
+
+    from app.tools import jira_sync
+
+    seen = []
+
+    def n8n(request):
+        seen.append(request)
+        return httpx.Response(200, json={"jira_key": "ITH-58"})
+
+    monkeypatch.setattr(jira_sync, "transport", httpx.MockTransport(n8n))
+    proposed = propose(db, users["alice"], "create_ticket", {**GOOD, "club_code": "IMS"})
+    body = client_as("alice").post(f"/api/v1/tool-calls/{proposed['id']}/confirm").json()
+
+    assert body["result"]["jira_key"] == "ITH-58"
+    assert body["result"]["jira_sync_status"] == "synced"
+    assert "ITH-58" in body["message"]
+    assert seen[0].url.path.endswith("/ticket-created")
+    assert seen[0].headers["X-DinkDesk-Token"]
+    sent = __import__("json").loads(seen[0].content)
+    assert sent["event"] == "ticket.created"
+    assert sent["data"]["ticket_number"] == "DD-000001"
+    assert sent["data"]["club_code"] == "IMS"
+    assert sent["data"]["requester"]["display_name"] == "alice"
+    ticket = client_as("alice").get("/api/v1/tickets").json()["items"][0]
+    assert ticket["jira_key"] == "ITH-58"

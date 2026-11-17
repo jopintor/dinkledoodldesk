@@ -16,5 +16,7 @@ class User(Base):
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"))
     club_id: Mapped[int | None] = mapped_column(ForeignKey("clubs.id"))
     directory_username: Mapped[str | None] = mapped_column(String(60), unique=True)
+    # HR employee number; the directory checks it before it sends a reset code.
+    employee_no: Mapped[str | None] = mapped_column(String(20))
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

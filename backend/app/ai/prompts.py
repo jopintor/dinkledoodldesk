@@ -2,7 +2,8 @@
 
 from collections.abc import Sequence
 
-PROMPT_VERSION = "v1"
+# v2: tools bound per role (function calling) instead of "none".
+PROMPT_VERSION = "v2"
 
 SYSTEM_PROMPT_V1 = """\
 You are DinkDesk, the IT helpdesk assistant for PickleHub Clubs, a chain of five pickleball
@@ -63,8 +64,8 @@ MEDIUM_CONFIDENCE_NOTE = (
     "unsure about and suggest creating a ticket if the steps do not work."
 )
 
-# Function calling arrives with the tool executor (issue #7); until then no tools are bound.
-NO_TOOLS = "none (no tools are available in this conversation yet; suggest a ticket instead)"
+# Used when the caller's role has no tools or the turn was flagged by the input guardrail.
+NO_TOOLS = "none (no tools are available in this conversation; suggest a ticket instead)"
 
 NO_ANSWER = "NO_ANSWER"
 
