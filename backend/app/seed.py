@@ -26,12 +26,14 @@ USERS = [
 # Directory account used by the reset_password tool (email -> directory username).
 DIRECTORY_USERNAMES = {"staff@picklehub.example": "demo.staff"}
 
-# TODO: replace with the services listed in
-# knowledge-base/kb-025-service-status-page-guide.md
+# Same names as the chat side panel (frontend/src/lib/mock/data.ts) and KB-025.
 SERVICES = [
-    "Court booking",
-    "Online payments",
-    "Member app",
+    "StaffID & SSO",
+    "CourtBook Admin",
+    "DinkPOS",
+    "SMS codes (MFA)",
+    "HubMail",
+    "Member App",
 ]
 
 
@@ -72,6 +74,10 @@ def main():
             if username:
                 user.directory_username = username
 
+        for old in session.scalars(
+            select(ServiceStatus).where(ServiceStatus.service_name.not_in(SERVICES))
+        ):
+            session.delete(old)
         for service in SERVICES:
             get_or_create(
                 session,

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/v1/tickets", tags=["tickets"])
 
 
 def ticket_out(t: Ticket) -> dict:
-    # TODO: match the Ticket shape in frontend/src/lib/types.ts.
+    # The chat side panel reads id, ticket_number, jira_key, summary and status.
     return {
         "id": t.id,
         "ticket_number": t.ticket_number,
@@ -30,6 +30,7 @@ def ticket_out(t: Ticket) -> dict:
 
 @router.get("")
 def list_tickets(
+    limit: int = Query(20, ge=1, le=100),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -40,5 +41,5 @@ def list_tickets(
     if not can_see_all:
         query = query.where(Ticket.requester_id == user.id)
 
-    rows = db.scalars(query).all()
+    rows = db.scalars(query.limit(limit)).all()
     return {"items": [ticket_out(t) for t in rows], "next_cursor": None}

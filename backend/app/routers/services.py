@@ -12,8 +12,10 @@ from app.utils import slugify
 
 router = APIRouter(prefix="/api/v1/services", tags=["services"])
 
-# TODO: match the allowed values in the API doc / KB-025.
-ServiceState = Literal["operational", "degraded", "partial_outage", "major_outage", "maintenance"]
+# Same values as `ServiceState` in frontend/src/lib/types.ts.
+ServiceState = Literal[
+    "operational", "degraded_performance", "partial_outage", "major_outage", "maintenance"
+]
 
 
 class StatusUpdate(BaseModel):
@@ -21,11 +23,13 @@ class StatusUpdate(BaseModel):
 
 
 def service_out(s: ServiceStatus) -> dict:
-    # TODO: match the response shape in the API doc.
+    """`ServiceStatus` in frontend/src/lib/types.ts."""
     return {
-        "key": slugify(s.service_name),
-        "name": s.service_name,
+        "service_key": slugify(s.service_name),
+        "display_name": s.service_name,
         "status": s.status,
+        "club_code": None,
+        "message": None,
         "updated_at": s.updated_at,
     }
 

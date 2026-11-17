@@ -10,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 import app.models  # noqa: F401  (registers every table)
 from app.db import Base
 from app.deps import get_current_user, get_db
+from app.guardrails.events import GuardrailEventRecord, InMemoryGuardrailLog, get_guardrail_log
 from app.models import Role, Ticket, User
 from app.routers import admin
 
@@ -50,17 +51,29 @@ def users(db):
 
 
 @pytest.fixture
-def events(monkeypatch):
-    """The guardrail events the dashboard sees. Tests append to this list."""
-    items = []
-    monkeypatch.setattr(admin, "_raw_guardrail_events", lambda: list(items))
-    return items
+def events():
+    """The guardrail log the dashboard reads. Tests record events into it."""
+    return InMemoryGuardrailLog()
+
+
+def event(action, type_, user_id=None, hour=8):
+    return GuardrailEventRecord(
+        stage="retrieval",
+        type=type_,
+        action=action,
+        detector="confidence",
+        user_id=user_id,
+        user_role="staff",
+        created_at=datetime(2026, 11, 3, hour, 0, tzinfo=UTC),
+    )
 
 
 @pytest.fixture
 def client_as(session_factory, users, events):
     app = FastAPI()
     app.include_router(admin.router)
+    app.include_router(admin.metrics_router)
+    app.dependency_overrides[get_guardrail_log] = lambda: events
 
     def override_db():
         with session_factory() as session:
@@ -120,39 +133,57 @@ def test_escalations_list_urgent_and_escalated_tickets_only(db, users, client_as
     assert all(i["source"] == "ticket" for i in body["items"])
 
 
-def test_escalations_include_escalation_events_from_the_guardrail_log(db, users, client_as, events):
+def test_escalations_match_the_frontend_shape(db, users, client_as):
+    add_ticket(db, users, "DD-000001", priority="P1")
+    item = client_as("agent").get("/api/v1/escalations").json()["items"][0]
+    for key in (
+        "id",
+        "conversation_id",
+        "ticket_number",
+        "reason",
+        "urgency",
+        "handoff_summary",
+        "user",
+        "status",
+        "created_at",
+        "waiting_s",
+        "title",
+        "priority",
+    ):
+        assert key in item
+    assert item["user"] == {"full_name": "member", "role": "member", "club_code": None}
+    assert item["status"] == "queued"
+    assert item["urgency"] == "high"
+    assert item["waiting_s"] > 0
+
+
+def test_resolved_tickets_only_show_when_asked(db, users, client_as):
+    add_ticket(db, users, "DD-000001", priority="P1", status="resolved")
+    client = client_as("agent")
+    assert client.get("/api/v1/escalations").json()["items"] == []
+    resolved = client.get("/api/v1/escalations?status=resolved").json()["items"]
+    assert [i["status"] for i in resolved] == ["resolved"]
+
+
+def test_escalations_include_escalated_guardrail_events_only(db, users, client_as, events):
     add_ticket(db, users, "DD-000001", priority="P1", day=2)
-    events += [
-        {
-            "id": 1,
-            "kind": "human_escalation",
-            "detail": "asked for a person",
-            "created_at": "2026-11-03T08:00:00+00:00",
-        },
-        {
-            "id": 2,
-            "kind": "injection_blocked",
-            "detail": "attack",
-            "created_at": "2026-11-03T09:00:00+00:00",
-        },
-    ]
+    events.record(event("escalated", "low_confidence", user_id=users["staff"].id, hour=8))
+    events.record(event("blocked", "prompt_injection", hour=9))
     items = client_as("admin").get("/api/v1/escalations").json()["items"]
     assert [i["source"] for i in items] == ["guardrail", "ticket"]
-    assert items[0]["reason"] == "human_escalation"
-    assert items[0]["summary"] == "asked for a person"
-    assert all(i["reason"] != "injection_blocked" for i in items)
+    assert items[0]["reason"] == "low_confidence"
+    assert items[0]["user"]["full_name"] == "staff"
+    assert all(i["reason"] != "prompt_injection" for i in items)
 
 
 def test_metrics_are_real_counts_and_the_rest_is_null(db, users, client_as, events):
     add_ticket(db, users, "DD-000001", priority="P1")
     add_ticket(db, users, "DD-000002", priority="P3", status="escalated")
     add_ticket(db, users, "DD-000003", priority="P3")
-    events += [
-        {"id": 1, "kind": "human_escalation", "created_at": "2026-11-03T08:00:00+00:00"},
-        {"id": 2, "kind": "injection_blocked", "created_at": "2026-11-03T09:00:00+00:00"},
-        {"id": 3, "kind": "injection_blocked", "created_at": "2026-11-03T09:30:00+00:00"},
-        {"id": 4, "kind": "pii_redacted", "created_at": "2026-11-03T10:00:00+00:00"},
-    ]
+    events.record(event("escalated", "user_requested_human"))
+    events.record(event("blocked", "prompt_injection"))
+    events.record(event("blocked", "prompt_injection"))
+    events.record(event("allowed_redacted", "pii_redacted"))
     body = client_as("agent").get("/api/v1/metrics/summary").json()
     assert body["tickets_created"] == 3
     assert body["escalations"] == 3  # 2 tickets + 1 event
@@ -167,19 +198,6 @@ def test_empty_database_gives_zeros_not_errors(client_as):
     assert metrics["escalations"] == 0
     assert metrics["guardrail_blocks"] == 0
     assert client_as("admin").get("/api/v1/escalations").json()["items"] == []
-
-
-def test_events_can_be_objects_too(client_as, events):
-    class Event:
-        id = 7
-        event_type = "human_handoff"
-        message = "wants a person"
-        timestamp = datetime(2026, 11, 3, 8, 0, tzinfo=UTC)
-
-    events.append(Event())
-    items = client_as("agent").get("/api/v1/escalations").json()["items"]
-    assert items[0]["reason"] == "human_handoff"
-    assert items[0]["created_at"].startswith("2026-11-03T08:00")
 
 
 def test_the_dashboard_endpoints_are_read_only(client_as):
