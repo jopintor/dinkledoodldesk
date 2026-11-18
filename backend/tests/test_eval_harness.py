@@ -67,6 +67,7 @@ def test_doc_id_of():
         (Observation(action="escalate", escalate=False), "escalate"),  # low-confidence hand-off
         (Observation(answer_mode="refusal"), "refuse"),
         (Observation(refused=True, action="answer"), "refuse"),
+        (Observation(action="refuse", answer_mode="template"), "refuse"),  # off-topic reply
         (Observation(tool_calls=["create_ticket"], action="answer"), "call_tool:create_ticket"),
         (Observation(tool_calls=["escalate_to_agent"], action="answer"), "escalate"),
         (Observation(error="boom"), "error"),
