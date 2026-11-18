@@ -1,0 +1,9 @@
+flowchart LR
+    U(["User confirms the<br/>create_ticket card"]) --> S["DinkDesk backend<br/>saves ticket DD-xxxxxx"]
+    S -->|"POST /ticket-created<br/>X-DinkDesk-Token"| W["n8n Webhook<br/>(Header Auth)"]
+    W --> C["Code node<br/>build Jira issue fields"]
+    C --> J["HTTP Request<br/>Jira REST v3: create issue<br/>project ITH"]
+    J -->|ok| R["Respond to Webhook<br/>{ jira_key: ITH-n }"]
+    R --> OK["Backend stores the Jira key<br/>chat shows 'Ticket DD-… (Jira ITH-…) created'"]
+    W -.->|"error or timeout"| F["Backend marks Jira sync failed<br/>user still gets the DD ticket number"]
+    J -.->|error| F

@@ -1,0 +1,21 @@
+erDiagram
+    roles ||--o{ users : "assigned to"
+    clubs ||--o{ users : "home branch"
+    users ||--o{ conversations : starts
+    users |o--o{ conversations : "agent takes over"
+    conversations ||--o{ messages : contains
+    messages ||--o{ tool_calls : proposes
+    conversations ||--o{ tool_calls : has
+    conversations ||--o{ escalations : "escalated via"
+    conversations |o--o{ tickets : creates
+    users ||--o{ tickets : requests
+    clubs |o--o{ tickets : "affected branch"
+    escalations |o--|| tickets : "linked to"
+    tool_calls |o--o| tickets : "created by"
+    kb_documents ||--o{ kb_chunks : "split into"
+    users |o--o{ guardrail_events : triggers
+    messages |o--o{ guardrail_events : "flagged on"
+    eval_runs ||--o{ eval_results : contains
+    users |o--o{ audit_logs : performs
+    clubs |o--o{ service_status : "scoped to"
+    tickets |o--o{ automation_events : emits

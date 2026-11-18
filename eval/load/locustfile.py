@@ -7,8 +7,9 @@ waits 2-5 s between actions like a person reading the reply.
 Profiles (env `DINKDESK_LOAD_PROFILE`):
 - `cached` (default, safe): only the golden-set "normal" questions, asked with the same role
   that `scripts/warm_cache.py` warmed them with, so every answer should come from the
-  response cache and cost no Gemini call. An answer that was NOT cached is reported as a
-  failure ("not cached"), and the test stops itself after `DINKDESK_MAX_CACHE_MISSES`
+  response cache and cost no Gemini call. A generated or degraded answer (one that called
+  Gemini) is reported as a failure ("not cached"); fixed template replies (clarify, hand-off)
+  never call Gemini and count as fine. The test stops itself after `DINKDESK_MAX_CACHE_MISSES`
   (default 5) so a cold cache can't burn the free-tier quota.
 - `live`: the same questions with a unique suffix, so each one is a real retrieval +
   generation. Spends Gemini quota; the server's rate limiter will queue, fall back or serve
@@ -52,6 +53,8 @@ def _questions_by_role() -> dict[str, list[str]]:
 
 
 QUESTIONS = _questions_by_role()
+# Answer modes that called (or tried to call) the LLM. "cached" and "template" did not.
+LLM_MODES = {"generated", "degraded"}
 modes: Counter = Counter()
 _lock = threading.Lock()
 _counter = 0
@@ -96,8 +99,10 @@ class HelpdeskUser(HttpUser):
             mode = resp.json()["assistant_message"]["answer_mode"]
             with _lock:
                 modes[mode] += 1
-                misses = sum(n for m, n in modes.items() if m != "cached")
-            if PROFILE == "cached" and mode != "cached":
+                misses = sum(n for m, n in modes.items() if m in LLM_MODES)
+            # Fixed (template) replies never call Gemini, so only a generated or degraded
+            # answer means the cache missed and quota was spent.
+            if PROFILE == "cached" and mode in LLM_MODES:
                 resp.failure(f"not cached ({mode}): this request spent LLM quota")
                 if misses >= MAX_CACHE_MISSES:
                     print(
