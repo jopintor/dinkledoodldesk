@@ -167,7 +167,12 @@ function TicketDetail({ escalation: e, user, onChanged }: { escalation: Escalati
   const takenByOther = !!e.assigned_agent && !mine;
   const resolved = e.status === "resolved";
 
+  // The prototype doesn't store chat transcripts yet: escalations from the live backend have no
+  // conversation to load, so don't ask for one (that showed a "Not Found" error every 3 s).
+  const hasTranscript = !!e.conversation_id;
+
   const loadConvo = useCallback(async () => {
+    if (!e.conversation_id) return;
     try {
       setConvo(await getConversation(e.conversation_id));
     } catch (err) {
@@ -176,11 +181,12 @@ function TicketDetail({ escalation: e, user, onChanged }: { escalation: Escalati
   }, [e.conversation_id]);
 
   useEffect(() => {
+    if (!hasTranscript) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch the chat, then follow new messages
     void loadConvo();
     const t = setInterval(loadConvo, 3000);
     return () => clearInterval(t);
-  }, [loadConvo]);
+  }, [loadConvo, hasTranscript]);
 
   async function act(kind: "claim" | "resolve", fn: () => Promise<unknown>) {
     setBusy(kind);
@@ -348,7 +354,13 @@ function TicketDetail({ escalation: e, user, onChanged }: { escalation: Escalati
                   : "DinkDesk is paused for this chat until you take over or resolve it"}
             </span>
           </div>
-          {convo === null && <Spinner className="text-primary" />}
+          {!hasTranscript && (
+            <p className="text-body text-body">
+              The chat transcript isn&apos;t saved in this prototype. Use the AI summary above, or contact {e.user.full_name}{" "}
+              directly.
+            </p>
+          )}
+          {hasTranscript && convo === null && <Spinner className="text-primary" />}
           {convo?.messages.map((m) =>
             m.sender_type === "user" ? (
               <UserBubble key={m.id} content={m.content} at={m.created_at} />

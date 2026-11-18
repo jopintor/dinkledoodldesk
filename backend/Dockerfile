@@ -16,6 +16,8 @@ COPY alembic.ini ./
 COPY alembic ./alembic
 
 RUN useradd --create-home --uid 1000 dinkdesk
+# /app is root-owned: give the app user a folder for the answer cache (RESPONSE_CACHE_PATH).
+RUN mkdir -p /app/.cache && chown dinkdesk:dinkdesk /app/.cache
 USER dinkdesk
 
 EXPOSE 8000

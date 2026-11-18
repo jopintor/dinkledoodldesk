@@ -245,6 +245,28 @@ class RagService:
         *,
         tools_allowed: bool = True,
     ) -> RagAnswer:
+        result = self._route_and_answer(message, caller, history, cacheable, tools_allowed)
+        # A short, vague follow-up ("it's broken") is tried together with the previous
+        # question; if that still finds nothing, ask which system it is instead of "no guide".
+        vague_follow_up = bool(history) and routing.rule_intent(message) == routing.AMBIGUOUS
+        if vague_follow_up and result.content == templates.LOW_CONFIDENCE and not result.escalate:
+            return RagAnswer(
+                content=routing.clarify_question(message), answer_mode="template",
+                action="clarify", intent=routing.AMBIGUOUS, confidence=0.0,
+                retrieval_confidence=result.retrieval_confidence, band=result.band,
+                kb_version=result.kb_version, retrieved_chunk_ids=result.retrieved_chunk_ids,
+                model=result.model,
+            )  # fmt: skip
+        return result
+
+    def _route_and_answer(
+        self,
+        message: str,
+        caller: Caller,
+        history: list[HistoryTurn],
+        cacheable: bool,
+        tools_allowed: bool,
+    ) -> RagAnswer:
         intent = routing.rule_intent(message)
         if intent == routing.AMBIGUOUS and history:
             intent = None  # a short follow-up; build_query adds the previous question

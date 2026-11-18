@@ -228,6 +228,32 @@ def test_short_follow_up_includes_previous_question(settings):
     )
 
 
+@pytest.mark.parametrize(
+    ("confidence", "band", "replies"),
+    [(0.2, "low", ()), (0.6, "medium", ("NO_ANSWER",))],  # no guide / model had no answer
+)
+def test_vague_follow_up_with_no_guide_asks_which_system(settings, confidence, band, replies):
+    # Arjan's QA: "it's broken" after an unrelated message said "no guide" instead of asking.
+    retriever, gw = StubRetriever(confidence, band), StubGateway(*replies)
+    history = [
+        HistoryTurn("user", "my email is [EMAIL] and my number is [PHONE], help"),
+        HistoryTurn("assistant", "What can I help you with?"),
+    ]
+    answer = service(settings, retriever, gw).answer("it's broken", STAFF, history)
+    assert answer.action == "clarify" and answer.answer_mode == "template"
+    assert answer.intent == "ambiguous" and answer.escalate is False
+    assert "Which system is it" in answer.content
+    assert retriever.queries[0].endswith("/ it's broken")  # the follow-up was still tried
+
+
+def test_long_message_with_no_guide_still_says_no_guide(settings):
+    history = [HistoryTurn("user", "hi")]
+    answer = service(settings, StubRetriever(0.2, "low"), StubGateway()).answer(
+        "The scoreboard projector in the lounge flickers every evening", STAFF, history
+    )
+    assert answer.content == templates.LOW_CONFIDENCE
+
+
 def test_apply_citations_variants():
     assert apply_citations("A [1, 3]. B [9] .", 3) == ("A [1][3]. B.", [1, 3], [9])
     assert apply_citations("No sources.", 3) == ("No sources.", [], [])
