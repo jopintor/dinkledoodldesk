@@ -54,3 +54,6 @@ desktop.ini
 
 # --- Claude Code local settings --------------------------------------------
 .claude/settings.local.json
+
+# Locust HTML reports are large; summary.md + CSVs are committed instead (eval/README.md)
+eval/results/**/locust.html

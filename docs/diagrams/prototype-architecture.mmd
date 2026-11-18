@@ -1,0 +1,44 @@
+flowchart LR
+    U(["User<br/>member · staff · agent · admin"])
+
+    subgraph FE["Frontend — Next.js"]
+        CW["Chat page<br/>cited answers · action cards"]
+        ESC["Escalation list<br/>read-only"]
+        KD["Admin dashboard<br/>KPIs · guardrail log"]
+    end
+
+    subgraph BE["Backend — FastAPI (/api/v1)"]
+        API["API layer<br/>JWT · RBAC · validation · rate limit"]
+        GIN["Input guardrails<br/>PII redaction · injection check"]
+        ORCH["Chat orchestrator<br/>routing rules · RAG · prompt v3"]
+        RET["Retriever<br/>vector + keyword · role filter"]
+        LLMG["LLM gateway<br/>answer cache · fallback model"]
+        GOUT["Output guardrails<br/>citation check · leak check · PII scan"]
+        TOOLS["Tool executor<br/>create_ticket · reset_password<br/>user confirms first"]
+    end
+
+    subgraph DATA["Data stores"]
+        PG[("PostgreSQL<br/>users · tickets · tool calls · logs")]
+        CH[("ChromaDB<br/>knowledge-base vectors")]
+    end
+
+    subgraph EXT["External services"]
+        GEM["Google Gemini API<br/>chat · embeddings · function calling"]
+        DIR["Mock StaffID directory"]
+        MAIL["Mailpit<br/>one-time codes"]
+        N8N["n8n WF-01"]
+        JIRA["Jira Service Management<br/>project ITH"]
+    end
+
+    U --> CW & ESC & KD
+    CW & ESC & KD -->|HTTPS JSON| API
+    API --> GIN --> ORCH
+    ORCH --> RET --> CH
+    ORCH --> LLMG --> GEM
+    ORCH --> GOUT
+    ORCH --> TOOLS
+    TOOLS -->|reset_password| DIR --> MAIL
+    TOOLS -->|"create_ticket: webhook + token"| N8N --> JIRA
+    N8N -->|jira_key| TOOLS
+    TOOLS --> PG
+    API --> PG

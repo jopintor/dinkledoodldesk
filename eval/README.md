@@ -98,7 +98,7 @@ python scripts/load_test.py --base-url https://<url> --users 20 --duration 3m
 python scripts/load_test.py --base-url https://<url> --users 30 --duration 3m
 ```
 
-Each simulated user signs in, then asks a demo question every 2–5 s, sometimes checking `/health` and `/api/v1/auth/me`. Before it starts, a preflight checks that the server is up, the demo login works and the answers really come from the cache; if not, it stops and tells you what to do. If more than 5 answers during the run are not cached, it stops itself so it can't burn the quota.
+Each simulated user signs in, then asks a demo question every 2–5 s, sometimes checking `/health` and `/api/v1/auth/me`. Before it starts, a preflight checks that the server is up, the demo login works and the answers really come from the cache; if not, it stops and tells you what to do. If more than 5 answers during the run called Gemini (`generated` or `degraded`), it stops itself so it can't burn the quota. Fixed `template` replies (a clarifying question, the "no guide" hand-off) never call Gemini and don't count.
 
 **Done when** each run prints a table like this and saves it as `summary.md`:
 
