@@ -65,7 +65,8 @@ def classify_behavior(obs: Observation) -> str:
     """
     if obs.error:
         return "error"
-    if obs.refused or obs.answer_mode in ("refusal", "blocked"):
+    # A guardrail block, or a reply that declines the request (off-topic, action "refuse").
+    if obs.refused or obs.answer_mode in ("refusal", "blocked") or obs.action == "refuse":
         return "refuse"
     tools = [t for t in obs.tool_calls if t != ESCALATE_TOOL]
     if tools:

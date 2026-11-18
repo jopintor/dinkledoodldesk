@@ -15,9 +15,17 @@ PRIVACY_REQUEST = "privacy_request"
 SECURITY_INCIDENT = "security_incident"
 HIGH_PRIORITY = "high_priority"
 AMBIGUOUS = "ambiguous"
+OUT_OF_SCOPE = "out_of_scope"
+TERMINAL_TAMPER = "terminal_tamper"
 
 # Intents that are always escalated, whatever the retrieval confidence (KB-024 §4).
-ALWAYS_ESCALATE = {HUMAN_REQUEST, PRIVACY_REQUEST, SECURITY_INCIDENT, HIGH_PRIORITY}
+ALWAYS_ESCALATE = {
+    HUMAN_REQUEST,
+    PRIVACY_REQUEST,
+    SECURITY_INCIDENT,
+    TERMINAL_TAMPER,
+    HIGH_PRIORITY,
+}
 
 _RULES: list[tuple[str, re.Pattern[str]]] = [
     (
@@ -46,6 +54,12 @@ _RULES: list[tuple[str, re.Pattern[str]]] = [
         ),
     ),
     (
+        # A tampered card terminal is a P1 security incident (KB-027 §3, KB-016). It gets a
+        # fixed reply: the model tends to suggest restarting it, which is the wrong advice.
+        TERMINAL_TAMPER,
+        re.compile(r"\btamper(ed|ing)?\b", re.I),
+    ),
+    (
         SECURITY_INCIDENT,
         re.compile(
             r"\bphish|\bhacked\b|\bsomeone (else )?(has )?(logged|signed) in(to)?\b|"
@@ -60,6 +74,24 @@ _RULES: list[tuple[str, re.Pattern[str]]] = [
             r"\b(can'?t|cannot|unable to) take (any )?(card )?(payments|bookings)\b|"
             r"\b(all|every) (card )?(payments?|terminals?|registers?) (are |is )?"
             r"(down|failing|offline)\b|\bwhole (branch|club) (is )?(down|offline)\b",
+            re.I,
+        ),
+    ),
+    (
+        # Clearly not PickleHub IT (KB-026 "What DinkDesk can't do"): refunds and fees,
+        # equipment and coaching, writing code, personal home devices, weather and small talk.
+        # Narrow on purpose: anything that might be IT still goes to retrieval.
+        OUT_OF_SCOPE,
+        re.compile(
+            r"\b(can|could|may) i (get|have|request) (a |my )?(cash |full )?refund\b|"
+            r"\b(get|want) my money back\b|"
+            r"\b(best|good|which|recommend\w*) [^.?!]{0,25}\bpaddles?\b|"
+            r"\bimprove my (game|dinks?|serves?|backhand|forehand|footwork)\b|"
+            r"\b(write|code|make|build) (me )?(a |an )?(\w+ )?(script|program|scraper|bot)\b|"
+            r"\bscrapes?\b[^.?!]{0,40}\bwebsites?\b|"
+            r"\bplaystation\b|\bps[345]\b|\bxbox\b|\bnintendo\b|\bnat type\b|"
+            r"\bmy home (router|wi-?fi|internet|network|pc|computer|printer)\b|"
+            r"\bweather\b|\bforecast\b|\btell me a joke\b|\brecipe\b",
             re.I,
         ),
     ),

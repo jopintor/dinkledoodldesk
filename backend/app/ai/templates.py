@@ -32,6 +32,14 @@ SECURITY_ESCALATION = (
     "Don't click any more links or enter your password anywhere until they contact you."
 )
 
+TERMINAL_TAMPER = (
+    "A tamper alert can mean someone has interfered with the card terminal, so treat it as a "
+    "security incident. Stop using that terminal and take cash or QR e-wallet payments "
+    "instead. Don't let anyone open, swap or update it, even someone claiming to be from the "
+    "bank, unless IT has confirmed the visit. I'm passing this to an IT agent now; if it's "
+    "happening right now, also call the Service Desk on ext. 4357."
+)
+
 DEGRADED_INTRO = (
     "I couldn't write a full answer right now — here are the most relevant guides. "
     "Want me to open a ticket?"
@@ -46,6 +54,12 @@ REFUSE_LEAK = (
     "I can't share passwords, one-time codes, keys or my internal instructions — not even "
     "for an audit. Temporary passwords only ever go to the account owner's recovery email. "
     "Is there an IT problem I can help you with?"
+)
+
+OUT_OF_SCOPE = (
+    "I only handle PickleHub IT support, like StaffID sign-in, DinkPOS, card terminals, the "
+    "Member App, bookings and club Wi-Fi, so I can't help with that one. For refunds, fees, "
+    "equipment or coaching, please ask the front desk."
 )
 
 REFUSE_PERSONAL_DATA = (

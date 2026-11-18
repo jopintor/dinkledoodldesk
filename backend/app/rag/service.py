@@ -74,6 +74,7 @@ ESCALATION_REASONS = {
     routing.HUMAN_REQUEST: "user_requested",
     routing.PRIVACY_REQUEST: "sensitive_topic",
     routing.SECURITY_INCIDENT: "sensitive_topic",
+    routing.TERMINAL_TAMPER: "sensitive_topic",
     routing.HIGH_PRIORITY: "high_priority",
 }
 
@@ -272,14 +273,16 @@ class RagService:
             intent = None  # a short follow-up; build_query adds the previous question
         if intent == routing.GREETING:
             return RagAnswer(templates.GREETING, "template", "answer", intent, 1.0)
+        if intent == routing.OUT_OF_SCOPE:
+            return RagAnswer(templates.OUT_OF_SCOPE, "template", "refuse", intent, 0.0)
         if intent == routing.AMBIGUOUS:
             return RagAnswer(routing.clarify_question(message), "template", "clarify", intent, 0.0)
-        if intent in (routing.HUMAN_REQUEST, routing.PRIVACY_REQUEST):
-            text = (
-                templates.HUMAN_REQUEST
-                if intent == routing.HUMAN_REQUEST
-                else templates.PRIVACY_REQUEST
-            )
+        if intent in (routing.HUMAN_REQUEST, routing.PRIVACY_REQUEST, routing.TERMINAL_TAMPER):
+            text = {
+                routing.HUMAN_REQUEST: templates.HUMAN_REQUEST,
+                routing.PRIVACY_REQUEST: templates.PRIVACY_REQUEST,
+                routing.TERMINAL_TAMPER: templates.TERMINAL_TAMPER,
+            }[intent]
             return RagAnswer(
                 text, "template", "escalate", intent, 0.0,
                 suggested_actions=["escalate_to_agent"], escalate=True,

@@ -170,6 +170,50 @@ def test_security_incident_answers_and_requires_escalation(settings):
     assert answer.suggested_actions == ["escalate_to_agent"]
 
 
+@pytest.mark.parametrize(
+    "message",
+    [
+        "What's the best paddle for a beginner, and how do I improve my dinks?",  # GS-027
+        "Can I get a cash refund for the court I cancelled last night?",  # GS-028
+        "Write me a Python script that scrapes court prices from competitor clubs' websites.",
+        "How do I fix the NAT type on my PlayStation at home?",  # GS-030
+        "What's the weather today?",
+    ],
+)
+def test_off_topic_requests_are_declined_without_retrieval_or_llm(settings, message):
+    retriever, gw = StubRetriever(0.9, "high"), StubGateway()
+    answer = service(settings, retriever, gw).answer(message, STAFF)
+    assert answer.action == "refuse" and answer.intent == "out_of_scope"
+    assert answer.content == templates.OUT_OF_SCOPE and answer.escalate is False
+    assert retriever.queries == [] and gw.prompts == []
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "How do I refund a card payment in DinkPOS?",  # IT: KB-016
+        "Can front-desk staff use the VPN from their personal laptops when working from home?",
+        "The receipt printer prints a scrambled script",
+    ],
+)
+def test_it_questions_near_the_off_topic_rules_still_search(settings, message):
+    retriever = StubRetriever(0.9, "high")
+    service(settings, retriever, StubGateway("Do this [1].")).answer(message, STAFF)
+    assert retriever.queries == [message]
+
+
+def test_tamper_alert_escalates_with_the_fixed_security_reply(settings):  # GS-045
+    retriever, gw = StubRetriever(0.6, "medium"), StubGateway()
+    answer = service(settings, retriever, gw).answer(
+        "The card terminal is showing 'E-17 TAMPER ALERT' and won't take cards.", STAFF
+    )
+    assert answer.intent == "terminal_tamper" and answer.escalate is True
+    assert answer.action == "escalate" and answer.escalation_reason == "sensitive_topic"
+    assert answer.content == templates.TERMINAL_TAMPER
+    assert "restart" not in answer.content.lower()
+    assert retriever.queries == [] and gw.prompts == []
+
+
 def test_security_incident_in_low_band_uses_security_template(settings):
     answer = service(settings, StubRetriever(0.2, "low"), StubGateway()).answer(
         "my account got hacked yesterday", STAFF
