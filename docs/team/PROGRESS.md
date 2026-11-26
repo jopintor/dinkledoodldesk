@@ -88,7 +88,7 @@ Key dates: **Nov 16** demo-ready · **Nov 16–27** presentation (Wk 16 or 17) �
 - ✅ Private repo [jopintor/dinkledoodldesk](https://github.com/jopintor/dinkledoodldesk) + [Projects board](https://github.com/users/jopintor/projects/1).
 - ✅ Milestones Sprint 0–4, issues #1–#13 mapped 1:1 to the feature checklist, `owner:*` and `area:*` labels.
 - ✅ Andre (`dremnty122`) and Arjan (`sarinasavs`) added as collaborators and board writers; issues assigned (Andre #2 #6 #7 #8 #11, Arjan #5 #10).
-- ✅ [CONTRIBUTING.md](CONTRIBUTING.md): branch + PR workflow (first PR merged: #14).
+- ✅ [CONTRIBUTING.md](../../CONTRIBUTING.md): branch + PR workflow (first PR merged: #14).
 
 **Open**
 - ⚠️ Ask Mr. Gregana for the exact presentation slot (Week 16 or 17).
@@ -105,15 +105,15 @@ Key dates: **Nov 16** demo-ready · **Nov 16–27** presentation (Wk 16 or 17) �
 
 | Doc | Lines | Covers | Maps to |
 |---|---|---|---|
-| [docs/architecture.md](docs/architecture.md) | 386 | System diagram, chat-turn sequence, component spec, Gemini rate-limit handling, LLM/tool failure handling, deployment view, provider swap | Template §6 · **Wk 14 assessment** |
-| [docs/database.md](docs/database.md) | 363 | ERD per domain, entities, indexes, retention, KPI formulas | Template §7 |
-| [docs/api.md](docs/api.md) | 551 | All REST endpoints, SSE streaming, RBAC per endpoint, n8n webhooks | Template §6 / API docs |
-| [docs/ai-design.md](docs/ai-design.md) | 347 | RAG pipeline, chunking, hybrid search, confidence→action, citations, intents, system prompt v1, 4 tool schemas, prompt table | Template §9 |
-| [docs/guardrails-and-security.md](docs/guardrails-and-security.md) | 232 | PII redaction, injection defences, validation, auth, RBAC matrix, secrets, audit log, threat model | Governance criterion |
-| [docs/automation.md](docs/automation.md) | 224 | n8n WF-01…WF-05 + WF-99, payloads, workflow tests | Template §10 |
+| [docs/architecture.md](../../docs/architecture.md) | 386 | System diagram, chat-turn sequence, component spec, Gemini rate-limit handling, LLM/tool failure handling, deployment view, provider swap | Template §6 · **Wk 14 assessment** |
+| [docs/database.md](../../docs/database.md) | 363 | ERD per domain, entities, indexes, retention, KPI formulas | Template §7 |
+| [docs/api.md](../../docs/api.md) | 551 | All REST endpoints, SSE streaming, RBAC per endpoint, n8n webhooks | Template §6 / API docs |
+| [docs/ai-design.md](../../docs/ai-design.md) | 347 | RAG pipeline, chunking, hybrid search, confidence→action, citations, intents, system prompt v1, 4 tool schemas, prompt table | Template §9 |
+| [docs/guardrails-and-security.md](../../docs/guardrails-and-security.md) | 232 | PII redaction, injection defences, validation, auth, RBAC matrix, secrets, audit log, threat model | Governance criterion |
+| [docs/automation.md](../../docs/automation.md) | 224 | n8n WF-01…WF-05 + WF-99, payloads, workflow tests | Template §10 |
 
 **Open**
-- ⚠️ Jose to confirm the **16 design defaults** in [docs/README.md](docs/README.md#decisions-to-confirm-jose) (only #2, Jira key `ITH`, is decided). The ones that change work this sprint: 4 tools not 3 (#1), extra containers (#3), new env vars (#4), Gemini model/quota check (#5), thresholds 0.70/0.50 (#8), auth approach (#14).
+- ⚠️ Jose to confirm the **16 design defaults** in [docs/README.md](../../docs/README.md#decisions-to-confirm-jose) (only #2, Jira key `ITH`, is decided). The ones that change work this sprint: 4 tools not 3 (#1), extra containers (#3), new env vars (#4), Gemini model/quota check (#5), thresholds 0.70/0.50 (#8), auth approach (#14).
 - ⬜ Setup guide in README once the stack actually runs end-to-end (Sprint 2–3).
 - ⬜ User manual with screenshots (Arjan, Sprint 3–4).
 - ⬜ Keep docs in sync when implementation diverges (whoever changes the code updates the doc).
@@ -137,10 +137,10 @@ Key dates: **Nov 16** demo-ready · **Nov 16–27** presentation (Wk 16 or 17) �
 ### T4 · Knowledge base & golden test set (workstream B) — ✅ (Jose)
 
 **Done**
-- ✅ [knowledge-base/](knowledge-base/README.md): **28 documents** — KB-000 company profile (PickleHub Clubs, branches DAS·IMS·BAC·GTR·TAG) + KB-001…KB-027 SOPs, FAQs and policies covering passwords/StaffID, lockout, MFA, HubMail, CourtBook, DinkPOS, RallyBracket, HubWatch CCTV, access requests, Wi-Fi, VPN, card terminals, printers, member app, booking bugs, on/offboarding, AUP, privacy, escalation/SLA, status page, phishing.
+- ✅ [knowledge-base/](../../knowledge-base/README.md): **28 documents** — KB-000 company profile (PickleHub Clubs, branches DAS·IMS·BAC·GTR·TAG) + KB-001…KB-027 SOPs, FAQs and policies covering passwords/StaffID, lockout, MFA, HubMail, CourtBook, DinkPOS, RallyBracket, HubWatch CCTV, access requests, Wi-Fi, VPN, card terminals, printers, member app, booking bugs, on/offboarding, AUP, privacy, escalation/SLA, status page, phishing.
 - ✅ Deliberate traps for retrieval testing: overlapping docs and **KB-014 superseded** remote-access policy.
 - ✅ Consistency rules and writing rules documented in the KB README.
-- ✅ [eval/golden-set/golden_set.jsonl](eval/golden-set/golden_set.jsonl): **50 questions** with expected sources, expected behaviour and reference answers.
+- ✅ [eval/golden-set/golden_set.jsonl](../../eval/golden-set/golden_set.jsonl): **50 questions** with expected sources, expected behaviour and reference answers.
 
 | Golden set breakdown | Count |
 |---|---|
@@ -160,9 +160,9 @@ Key dates: **Nov 16** demo-ready · **Nov 16–27** presentation (Wk 16 or 17) �
 
 **Done**
 - ✅ Repo scaffold: `.gitignore` (excludes root PDFs and `.env`), `.gitattributes`, `.env.example`, README, CONTRIBUTING.
-- ✅ [infra/docker-compose.yml](infra/docker-compose.yml): Postgres 16, ChromaDB 1.5.9, n8n 2.45.4, backend, frontend — all with healthchecks.
+- ✅ [infra/docker-compose.yml](../../infra/docker-compose.yml): Postgres 16, ChromaDB 1.5.9, n8n 2.45.4, backend, frontend — all with healthchecks.
 - ✅ Dockerfiles for backend and frontend.
-- ✅ [CI](.github/workflows/ci.yml): backend (ruff lint + format + pytest), frontend (eslint + build/type-check), **Docker Compose smoke test** (brings the stack up, curls backend `/health`, Chroma heartbeat, n8n `/healthz`). All runs green.
+- ✅ [CI](../../.github/workflows/ci.yml): backend (ruff lint + format + pytest), frontend (eslint + build/type-check), **Docker Compose smoke test** (brings the stack up, curls backend `/health`, Chroma heartbeat, n8n `/healthz`). All runs green.
 - ✅ Jira key `ITH` set in `.env.example` and `backend/app/config.py`.
 - ✅ Local backend venv on Python 3.12.
 
@@ -177,23 +177,23 @@ Key dates: **Nov 16** demo-ready · **Nov 16–27** presentation (Wk 16 or 17) �
 ### T6 · Backend & API (FastAPI + Postgres) — 🟡 (Andre) · Sprint 1 · [#2](https://github.com/jopintor/dinkledoodldesk/issues/2), [#6](https://github.com/jopintor/dinkledoodldesk/issues/6)
 
 **Done**
-- ✅ FastAPI app with CORS and `GET /health` ([backend/app/main.py](backend/app/main.py)).
-- ✅ Typed settings with safe defaults ([backend/app/config.py](backend/app/config.py)); secrets as `SecretStr`.
-- ✅ Swappable LLM provider layer: `base` interface, Gemini + OpenAI implementations, factory ([backend/app/llm/](backend/app/llm/)).
+- ✅ FastAPI app with CORS and `GET /health` ([backend/app/main.py](../../backend/app/main.py)).
+- ✅ Typed settings with safe defaults ([backend/app/config.py](../../backend/app/config.py)); secrets as `SecretStr`.
+- ✅ Swappable LLM provider layer: `base` interface, Gemini + OpenAI implementations, factory ([backend/app/llm/](../../backend/app/llm/)).
 - ✅ Tests: `test_health.py`, `test_llm_factory.py`.
 
 **Next (Sprint 1)**
-- ⬜ SQLAlchemy models + Alembic migrations from [docs/database.md](docs/database.md) (users/roles/branches, conversations/messages, tickets, escalations, KB docs, audit log).
+- ⬜ SQLAlchemy models + Alembic migrations from [docs/database.md](../../docs/database.md) (users/roles/branches, conversations/messages, tickets, escalations, KB docs, audit log).
 - ⬜ Seed script: demo accounts for every role (incl. two admins — decision #10), branches, services.
 - ⬜ `POST /auth/login`, `GET /auth/me` (JWT 60 min) + RBAC dependency.
 - ⬜ Conversation endpoints: `POST /conversations`, `POST /conversations/{id}/messages` (+ SSE stream).
-- ⬜ Error envelope, input validation, rate limiting per [docs/api.md §1](docs/api.md).
+- ⬜ Error envelope, input validation, rate limiting per [docs/api.md §1](../../docs/api.md).
 - ⬜ PII redaction middleware (basic version this sprint).
 
 ### T7 · AI / RAG (Gemini + LangChain + ChromaDB) — 🟡 (Jose) · Sprint 1 · [#3](https://github.com/jopintor/dinkledoodldesk/issues/3), [#4](https://github.com/jopintor/dinkledoodldesk/issues/4), [#5](https://github.com/jopintor/dinkledoodldesk/issues/5)
 
 **Done**
-- ✅ Full design: chunking, embeddings (`gemini-embedding-001`, 768-d), hybrid search, confidence score → answer / clarify / escalate, citation format, intent taxonomy, system prompt v1, prompt design table, versioning loop ([docs/ai-design.md](docs/ai-design.md)).
+- ✅ Full design: chunking, embeddings (`gemini-embedding-001`, 768-d), hybrid search, confidence score → answer / clarify / escalate, citation format, intent taxonomy, system prompt v1, prompt design table, versioning loop ([docs/ai-design.md](../../docs/ai-design.md)).
 - ✅ LLM provider abstraction (shared with T6).
 
 **Next (Sprint 1)**
@@ -207,7 +207,7 @@ Key dates: **Nov 16** demo-ready · **Nov 16–27** presentation (Wk 16 or 17) �
 ### T8 · Automation & integrations (function calling, n8n, Jira) — ⬜ (Andre) · Sprint 2 · [#7](https://github.com/jopintor/dinkledoodldesk/issues/7), [#8](https://github.com/jopintor/dinkledoodldesk/issues/8)
 
 **Done**
-- ✅ Design: 4 tool schemas (`reset_password`, `create_ticket`, `check_service_status`, `escalate_to_agent`), n8n workflows WF-01…WF-05 + WF-99, outbox pattern, HMAC-signed callbacks, Jira polling ([docs/automation.md](docs/automation.md)).
+- ✅ Design: 4 tool schemas (`reset_password`, `create_ticket`, `check_service_status`, `escalate_to_agent`), n8n workflows WF-01…WF-05 + WF-99, outbox pattern, HMAC-signed callbacks, Jira polling ([docs/automation.md](../../docs/automation.md)).
 - ✅ n8n container runs in compose (smoke-tested in CI).
 
 **Next (Sprint 2)**
@@ -221,7 +221,7 @@ Key dates: **Nov 16** demo-ready · **Nov 16–27** presentation (Wk 16 or 17) �
 ### T9 · Security & guardrails — ⬜ (Jose + Andre) · Sprint 1–2 · [#6](https://github.com/jopintor/dinkledoodldesk/issues/6), [#9](https://github.com/jopintor/dinkledoodldesk/issues/9)
 
 **Done**
-- ✅ Design: layered guardrails, PII patterns, injection heuristics, capability limiting, output checks, RBAC matrix, audit events, threat model ([docs/guardrails-and-security.md](docs/guardrails-and-security.md)).
+- ✅ Design: layered guardrails, PII patterns, injection heuristics, capability limiting, output checks, RBAC matrix, audit events, threat model ([docs/guardrails-and-security.md](../../docs/guardrails-and-security.md)).
 - ✅ Secrets only from `.env` (gitignored), `.env.example` committed, restricted course PDFs excluded from git.
 
 **Next**
@@ -246,11 +246,11 @@ Key dates: **Nov 16** demo-ready · **Nov 16–27** presentation (Wk 16 or 17) �
 
 **Done**
 - ✅ Next.js + TypeScript + Tailwind scaffold, ESLint, Dockerfile.
-- ✅ Placeholder home page that calls the backend `/health` ([frontend/src/app/page.tsx](frontend/src/app/page.tsx)).
-- ✅ API client with configurable base URL: local backend, Cloudflare tunnel, or built-in `/mock-api` ([frontend/src/lib/api.ts](frontend/src/lib/api.ts)) — Arjan never needs Docker.
+- ✅ Placeholder home page that calls the backend `/health` ([frontend/src/app/page.tsx](../../frontend/src/app/page.tsx)).
+- ✅ API client with configurable base URL: local backend, Cloudflare tunnel, or built-in `/mock-api` ([frontend/src/lib/api.ts](../../frontend/src/lib/api.ts)) — Arjan never needs Docker.
 
 **Next**
-- ⬜ Sprint 1: apply style guide (fonts, colour tokens), login page, chat widget (messages, citations, streaming), mock fixtures from [docs/api.md](docs/api.md) (MSW — decision #15).
+- ⬜ Sprint 1: apply style guide (fonts, colour tokens), login page, chat widget (messages, citations, streaming), mock fixtures from [docs/api.md](../../docs/api.md) (MSW — decision #15).
 - ⬜ Sprint 2: agent queue + takeover, admin KPI dashboard, KB admin page, guardrail log panel.
 - ⬜ Sprint 3: Playwright E2E for the main flows; screenshots for the user manual.
 
@@ -258,9 +258,9 @@ Key dates: **Nov 16** demo-ready · **Nov 16–27** presentation (Wk 16 or 17) �
 
 **Done**
 - ✅ 50-question golden set covering all required test categories (normal, ambiguous, unsupported, malicious, low-confidence + PII and actions).
-- ✅ Metric definitions: faithfulness, relevance, behaviour accuracy, deflection, tool success, latency ([eval/golden-set/README.md](eval/golden-set/README.md)); KPI formulas in [docs/database.md §8](docs/database.md).
+- ✅ Metric definitions: faithfulness, relevance, behaviour accuracy, deflection, tool success, latency ([eval/golden-set/README.md](../../eval/golden-set/README.md)); KPI formulas in [docs/database.md §8](../../docs/database.md).
 - ✅ pytest + CI wired up (2 tests passing).
-- ✅ n8n workflow test cases written ([docs/automation.md §8](docs/automation.md)).
+- ✅ n8n workflow test cases written ([docs/automation.md §8](../../docs/automation.md)).
 
 **Next**
 - ⬜ Unit/integration tests alongside every Sprint 1 feature.
@@ -280,8 +280,8 @@ Key dates: **Nov 16** demo-ready · **Nov 16–27** presentation (Wk 16 or 17) �
 
 | Week | Assessment | Reuses | Status |
 |---|---|---|---|
-| 13 | Risk-mitigation framework (privacy / data governance) | [docs/guardrails-and-security.md](docs/guardrails-and-security.md), KB-023 privacy policy | ⚠️ status not tracked — confirm whether it was submitted |
-| 14 | Architecture diagram + component spec | [docs/architecture.md](docs/architecture.md) §2–§3 | 🟡 content ready; format and submit |
+| 13 | Risk-mitigation framework (privacy / data governance) | [docs/guardrails-and-security.md](../../docs/guardrails-and-security.md), KB-023 privacy policy | ⚠️ status not tracked — confirm whether it was submitted |
+| 14 | Architecture diagram + component spec | [docs/architecture.md](../../docs/architecture.md) §2–§3 | 🟡 content ready; format and submit |
 | 15 | QA report + git history | T12 Sprint 2 output | ⬜ |
 
 ---

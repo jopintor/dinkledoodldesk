@@ -4,7 +4,7 @@
 >
 > Also serves as the Week 14 enabling assessment: system architecture diagram + component specification covering data dependencies, API rate-limiting and agent execution failures.
 >
-> Related: [database.md](database.md) · [api.md](api.md) · [ai-design.md](ai-design.md) · [guardrails-and-security.md](guardrails-and-security.md) · [automation.md](automation.md) · [PROJECT_PLAN.md](../PROJECT_PLAN.md)
+> Related: [database.md](database.md) · [api.md](api.md) · [ai-design.md](ai-design.md) · [guardrails-and-security.md](guardrails-and-security.md) · [automation.md](automation.md) · [PROJECT_PLAN.md](team/PROJECT_PLAN.md)
 
 ## 1. Context
 
