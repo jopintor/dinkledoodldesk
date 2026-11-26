@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DinkDesk · AI IT Helpdesk</title>
+<meta name="description" content="DinkDesk is an AI helpdesk for PickleHub Clubs that answers IT questions from the clubs' own guides, takes action with the user's confirmation, and hands risky cases to a person.">
+<link rel="icon" href="assets/logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@400;500;600;700&display=swap">
+<style>
+:root{--night:#07140C;--court:#0D3A22;--deep:#0A2C1A;--line:#2E5A3B;--lime:#CDEB5B;--chalk:#F1F4E6;--mist:#B8CBB5}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--night);color:var(--mist);font-family:Poppins,system-ui,sans-serif;font-size:17px;line-height:1.6}
+a{color:var(--lime)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+h1,h2{font-family:Anton,Impact,sans-serif;font-weight:400;color:var(--chalk);text-transform:uppercase;letter-spacing:.5px;line-height:1}
+h1{font-size:clamp(64px,12vw,128px);margin:0}
+h2{font-size:clamp(36px,6vw,56px);margin:0 0 28px}
+h3{color:var(--chalk);font-size:19px;margin:0 0 6px}
+.chip{display:inline-block;background:var(--chalk);color:var(--court);font-weight:600;font-size:14px;padding:5px 14px;border-radius:2px}
+.eyebrow{color:var(--lime);font-weight:700;letter-spacing:3px;text-transform:uppercase;font-size:13px}
+nav{position:sticky;top:0;z-index:5;background:rgba(7,20,12,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;gap:22px;height:60px;overflow-x:auto;white-space:nowrap}
+nav a{color:var(--mist);text-decoration:none;font-size:15px}
+nav a:hover{color:var(--chalk)}
+nav .brand{display:flex;align-items:center;gap:10px;color:var(--chalk);font-weight:700;margin-right:auto}
+nav .brand img{width:28px;height:28px}
+header{background:radial-gradient(ellipse at 70% 30%,#14472B,var(--night) 70%);border-bottom:1px solid var(--line)}
+header .wrap{padding:72px 24px 64px}
+.tag{font-size:clamp(18px,2.4vw,24px);color:var(--chalk);max-width:720px;margin:18px 0 28px}
+.btns{display:flex;flex-wrap:wrap;gap:14px}
+.btn{display:inline-block;padding:13px 24px;border-radius:3px;font-weight:600;text-decoration:none;font-size:16px}
+.btn.primary{background:var(--lime);color:var(--deep)}
+.btn.ghost{border:2px solid var(--mist);color:var(--chalk)}
+section{padding:72px 0;border-bottom:1px solid var(--line)}
+section.alt{background:var(--deep)}
+video{width:100%;border:2px solid var(--lime);background:#000;display:block}
+.grid{display:grid;gap:20px}
+.g3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.g2{grid-template-columns:1fr 1fr}
+@media (max-width:760px){.g2{grid-template-columns:1fr}}
+.card{background:var(--court);border:1px solid var(--line);padding:24px;border-radius:4px}
+.num{font-family:Anton,Impact,sans-serif;font-size:56px;color:var(--lime);line-height:1}
+figure{margin:0}
+figure img{width:100%;border:1px solid var(--line);border-radius:4px;display:block;background:#fff}
+figcaption{font-size:14px;margin-top:8px}
+ol.steps{counter-reset:s;list-style:none;padding:0;margin:28px 0 0;display:grid;gap:14px}
+ol.steps li{counter-increment:s;display:flex;gap:16px;align-items:flex-start}
+ol.steps li::before{content:counter(s);flex:none;width:36px;height:36px;border-radius:50%;background:var(--lime);color:var(--deep);font-family:Anton;font-size:20px;display:flex;align-items:center;justify-content:center}
+table{width:100%;border-collapse:collapse}
+td,th{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{color:var(--chalk)}
+code,pre{font-family:ui-monospace,Consolas,monospace;font-size:14px}
+pre{background:#04100A;border:1px solid var(--line);padding:16px;overflow-x:auto;color:var(--chalk);border-radius:4px}
+footer{padding:40px 0;font-size:14px}
+@media (max-width:600px){header .wrap{padding:48px 16px}.wrap{padding:0 16px}section{padding:52px 0}}
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+<a class="brand" href="#top"><img src="assets/logo.svg" alt="">DinkDesk</a>
+<a href="#demo">Demo</a><a href="#features">Features</a><a href="#how">How it works</a><a href="#results">Results</a><a href="#team">Team</a><a href="#run">Run it</a>
+</div></nav>
+
+<header id="top"><div class="wrap">
+<p class="eyebrow">S-ITPE006 Capstone · De La Salle University–Dasmariñas · 2026</p>
+<h1>DinkDesk</h1>
+<p class="tag">An AI helpdesk for PickleHub Clubs that answers IT questions, takes action, and knows when to hand over to a person.</p>
+<div class="btns">
+<a class="btn primary" href="#demo">Watch the demo</a>
+<a class="btn ghost" href="https://github.com/jopintor/dinkledoodldesk">Source code on GitHub</a>
+</div>
+</div></header>
+
+<section id="demo"><div class="wrap">
+<h2>Demo</h2>
+<video controls preload="metadata" poster="assets/02-answer-and-action.jpg">
+<source src="assets/dinkdesk-demo.mp4" type="video/mp4">
+Your browser cannot play this video. <a href="assets/dinkdesk-demo.mp4">Download it here.</a>
+</video>
+<p>A 3-minute 48-second walkthrough of the running system: a cited answer, a blocked prompt-injection attempt, a ticket created in DinkDesk and Jira, a password reset with a one-time code, a security incident handed to IT, and the IT agent and administrator screens.</p>
+</div></section>
+
+<section class="alt"><div class="wrap">
+<h2>The problem</h2>
+<div class="grid g3">
+<div class="card"><h3>The same questions, by hand</h3><p>PickleHub's IT help runs on messages, calls and walk-ups. Password resets, Wi-Fi and card-terminal errors are answered one at a time, again and again.</p></div>
+<div class="card"><h3>Busy when IT is not</h3><p>The five clubs are busiest in the evenings and on weekends, exactly when the IT team is least available.</p></div>
+<div class="card"><h3>No numbers</h3><p>Management cannot see how many requests arrive, how long they take, or which systems fail most.</p></div>
+</div>
+<p style="margin-top:20px">PickleHub Clubs is a fictional chain of pickleball clubs in Cavite, written by the team as the business setting for this project.</p>
+</div></section>
+
+<section id="features"><div class="wrap">
+<h2>What it does</h2>
+<div class="grid g4">
+<div class="card"><span class="chip">Answers</span><p>From 28 PickleHub IT guides, with a citation for every answer.</p></div>
+<div class="card"><span class="chip">Acts</span><p>Resets a StaffID password and opens a Jira ticket, always after the user confirms.</p></div>
+<div class="card"><span class="chip">Hands over</span><p>Security, privacy and uncertain cases go to a human IT agent.</p></div>
+<div class="card"><span class="chip">Protects</span><p>Role-based access, personal-data redaction and prompt-injection guardrails.</p></div>
+</div>
+<div class="grid g2" style="margin-top:36px">
+<figure><img src="assets/01-login.jpg" alt="DinkDesk sign-in page" loading="lazy"><figcaption>Sign-in with Staff &amp; IT and Member tabs; each role lands on its own screen.</figcaption></figure>
+<figure><img src="assets/02-answer-and-action.jpg" alt="Chat answer with sources and an action card" loading="lazy"><figcaption>A cited answer with a confirm-first action card.</figcaption></figure>
+<figure><img src="assets/03-escalated.jpg" alt="Conversation handed over to IT" loading="lazy"><figcaption>A sensitive request handed over to the IT team.</figcaption></figure>
+<figure><img src="assets/05-escalations.jpg" alt="IT agent escalation list" loading="lazy"><figcaption>The IT agent's list of escalated conversations.</figcaption></figure>
+</div>
+</div></section>
+
+<section id="how" class="alt"><div class="wrap">
+<h2>How it works</h2>
+<figure><img src="assets/architecture.png" alt="Architecture: Next.js frontend, FastAPI backend with guardrails, RAG and tool executor, PostgreSQL and ChromaDB, and Gemini, n8n, Jira and a mock directory as external services" loading="lazy"><figcaption>Four layers, all running in Docker Compose.</figcaption></figure>
+<ol class="steps">
+<li><div><b style="color:var(--chalk)">Input guardrails</b> mask phone numbers and emails and block prompt-injection attempts.</div></li>
+<li><div><b style="color:var(--chalk)">Routing rules</b> answer greetings, vague, off-topic and security messages without calling the model.</div></li>
+<li><div><b style="color:var(--chalk)">Retrieval</b> searches the guides with vector and keyword search, filtered by the user's role, and scores its confidence.</div></li>
+<li><div><b style="color:var(--chalk)">Generation</b>: Google Gemini answers only from the retrieved sections and cites them, or proposes one of two tools.</div></li>
+<li><div><b style="color:var(--chalk)">Output checks</b> remove invalid citations, catch prompt leaks and scan for personal data again.</div></li>
+</ol>
+<p style="margin-top:24px">When confidence is low, the model is not called at all and the user is offered a ticket or an IT agent. Tickets are saved in DinkDesk first and then sent through an n8n workflow to Jira, so a Jira outage never loses a ticket.</p>
+</div></section>
+
+<section id="results"><div class="wrap">
+<h2>Results</h2>
+<p>Measured on a golden set of 50 questions covering normal, vague, off-topic, malicious, personal-data, low-confidence and action requests.</p>
+<div class="grid g4" style="margin-top:24px">
+<div class="card"><div class="num">92%</div><h3>Behavior accuracy</h3><p>Target 85%. The first prompt scored 64%.</p></div>
+<div class="card"><div class="num">100%</div><h3>Refusal accuracy</h3><p>On prompt-injection and off-topic questions.</p></div>
+<div class="card"><div class="num">95.5%</div><h3>Right guide in top 5</h3><p>Retrieval hit rate.</p></div>
+<div class="card"><div class="num">3.1 s</div><h3>p95 response time</h3><p>Target 6 s. Started at 12.3 s.</p></div>
+</div>
+<p style="margin-top:20px">Load test: 20 users for 3 minutes, 980 requests, 0 failures. 361 unit tests run in GitHub Actions on every pull request.</p>
+</div></section>
+
+<section class="alt"><div class="wrap">
+<h2>Tech stack</h2>
+<table>
+<tr><th>Frontend</th><td>Next.js, React, TypeScript, Tailwind CSS</td></tr>
+<tr><th>Backend</th><td>Python, FastAPI, LangChain</td></tr>
+<tr><th>AI</th><td>Google Gemini: chat, embeddings and function calling</td></tr>
+<tr><th>Data</th><td>PostgreSQL, ChromaDB</td></tr>
+<tr><th>Automation</th><td>n8n, Jira Service Management</td></tr>
+<tr><th>DevOps and testing</th><td>Docker Compose, GitHub Actions, pytest, Locust</td></tr>
+<tr><th>Design</th><td>Figma</td></tr>
+</table>
+</div></section>
+
+<section id="team"><div class="wrap">
+<h2>Team</h2>
+<div class="grid g4">
+<div class="card"><h3>Jose Pintor</h3><p class="eyebrow" style="letter-spacing:1px">Project lead</p><p>AI/RAG pipeline, prompts and guardrails, DevOps, frontend development.</p></div>
+<div class="card"><h3>Andre Montoya</h3><p class="eyebrow" style="letter-spacing:1px">Backend &amp; automation</p><p>FastAPI and PostgreSQL, function calling, n8n and Jira, QA and evaluation.</p></div>
+<div class="card"><h3>Arjan Sarinas</h3><p class="eyebrow" style="letter-spacing:1px">UI/UX design</p><p>Figma design of every screen and user-interface testing.</p></div>
+<div class="card"><h3>Marl Rodriguez</h3><p class="eyebrow" style="letter-spacing:1px">UI/UX design support</p><p>Figma design and user-interface testing, screenshots for the user manual.</p></div>
+</div>
+<p style="margin-top:20px">Instructor: Mr. Ansbert F. Gregana · College of Information and Computer Studies, De La Salle University–Dasmariñas.</p>
+</div></section>
+
+<section id="run" class="alt"><div class="wrap">
+<h2>Run it yourself</h2>
+<p><b style="color:var(--chalk)">Interface preview</b> (no keys needed, sample data). Needs Node.js 20 or later:</p>
+<pre>git clone https://github.com/jopintor/dinkledoodldesk.git
+cd dinkledoodldesk/frontend
+npm install
+npm run dev</pre>
+<p>Then open <code>http://localhost:3000</code> and use the demo-account buttons on the sign-in page.</p>
+<p><b style="color:var(--chalk)">The complete system</b> with the real AI needs Docker Desktop and a free Gemini API key. The step-by-step guide is in the <a href="https://github.com/jopintor/dinkledoodldesk#run-it-yourself">README</a>.</p>
+</div></section>
+
+<footer><div class="wrap">
+<p>DinkDesk is an academic project. PickleHub Clubs, its staff and its knowledge base are fictional.</p>
+<p><a href="https://github.com/jopintor/dinkledoodldesk">github.com/jopintor/dinkledoodldesk</a></p>
+</div></footer>
+</body>
+</html>
